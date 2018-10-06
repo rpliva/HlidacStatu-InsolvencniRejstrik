@@ -15,17 +15,24 @@ namespace InsolvencniRejstrik
 			Console.WriteLine("----------------------------------------------");
 			Console.WriteLine();
 
+			var apiToken = "";
 			if (args.Length < 1)
 			{
-				Console.WriteLine("Program je nutne spustit s Vasim autorizacnim tokenem jako prvnim parametrem");
+				Console.WriteLine("Program lze take spustit s Vasim autorizacnim tokenem jako prvnim parametrem, nebude pak nutne jej zadavat v programu rucne");
 				Console.WriteLine();
 				Console.WriteLine("Priklad pouziti:");
 				Console.WriteLine("   InsolvencniRejstrik.exe apitokenapitokenapitokenapitoken");
-
-				return;
+				Console.WriteLine();
+				Console.WriteLine();
+				Console.WriteLine("Zadajte Vas API token: ");
+				apiToken = Console.ReadLine();
+			}
+			else
+			{
+				apiToken = args[0];
 			}
 
-			var count = DownloadDataAsync(args[0], new DateTime(2008, 1, 14), new DateTime(2008, 3, 1)).Result;
+			var count = DownloadDataAsync(apiToken, new DateTime(2008, 1, 14), new DateTime(2008, 3, 1)).Result;
 
 			Console.WriteLine("Stahovani dokonceno");
 			Console.ReadKey();
