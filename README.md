@@ -1,6 +1,6 @@
-# Datové sady hlídače Státu - Insolvenční rejstřík
+# Datové sady Hlídače Státu - Insolvenční rejstřík
 
-Program pro stažení záznamů z Insolvenčního rejstříku, jejich zpracování a uložení do datové sady Hlídače státu.
+Program pro stažení záznamů z Insolvenčního rejstříku, jejich zpracování a uložení do datové sady Hlídače Státu.
 
 Podrobné informace o datovém zdroji v Hlídači Státu jsou [zde](https://www.hlidacstatu.cz/data/Index/insolvencni-rejstrik) včetně aktuálního datového schématu a možnosti prohlížení a vyhledávání v uložených datech.
 
