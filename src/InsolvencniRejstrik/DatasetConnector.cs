@@ -102,7 +102,6 @@ namespace InsolvencniRejstrik
 
 	public class Template
 	{
-		public string Title { get; set; } = "";
 		public string Header { get; set; } = "";
 		public string Body { get; set; } = "";
 		public string Footer { get; set; } = "";

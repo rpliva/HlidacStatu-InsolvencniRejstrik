@@ -48,7 +48,6 @@
 		};
 
 		private static Template DetailTemplate = new Template {
-			Title = "@item.Nazev",
 			Header = "<h3>@item.Nazev</h3>",
 			Body = @"<table class=""table table-hover"">
         <tbody>
@@ -88,13 +87,6 @@
 					}
 				</td>
             </tr>
-			@if (!fn_IsNullOrEmpty(item.Adresa))
-			{
-				<tr>
-					<td>Adresa</td>
-					<td>@item.Adresa</td>
-				</tr>
-			}
 			@if (!fn_IsNullOrEmpty(item.Rc))
 			{
 				<tr>
@@ -107,27 +99,6 @@
 				<tr>
 					<td>IČ</td>
 					<td>@item.ICO</td>
-				</tr>
-			}
-			@if (!fn_IsNullOrEmpty(item.InsolvencniSpravce))
-			{
-				<tr>
-					<td>Insolvenční správce</td>
-					<td>@item.InsolvencniSpravce</td>
-				</tr>
-			}
-			@if (!fn_IsNullOrEmpty(item.InsolvencniSpravceKancelar))
-			{
-				<tr>
-					<td>Kancelář</td>
-					<td>@item.InsolvencniSpravceKancelar</td>
-				</tr>
-			}
-			@if (item.PosledniZmena > item.ZahajeniRizeni)
-			{
-				<tr>
-					<td>Datum poslední změny</td>
-					<td>@(fn_FormatDate(item.PosledniZmena, ""dd.MM.yyyy""))</td>
 				</tr>
 			}
             <tr>

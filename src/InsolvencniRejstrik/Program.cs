@@ -42,6 +42,7 @@ namespace InsolvencniRejstrik
 		{
 			var client = new HtmlWeb();
 			client.OverrideEncoding = Encoding.GetEncoding("Windows-1250");
+			var wsClient = new Isir.IsirWsCuzkPortTypeClient();
 
 			var datasetConnector = new DatasetConnector(apiToken);
 			var dataset = InsolvencniRejstrikDataset.InsolvencniRejstrik;
@@ -95,11 +96,28 @@ namespace InsolvencniRejstrik
 							RcBezLomitka = items[9].InnerText.Replace("/", "").Trim()
 						};
 						rizeni.Id = items[7].ChildNodes[1].Attributes["href"]?.Value?.Split(';')?.Skip(1)?.FirstOrDefault();
-						rizeni.Url = "https://isir.justice.cz/isir/ueu/evidence_upadcu_detail.do?id=" + rizeni.Id;
+						rizeni.AktualniStav = "ZNEPRISTUPNENO";
 
-						// TODO: nacist detaily rizeni
+						var wsResult = await wsClient.getIsirWsCuzkDataAsync(string.IsNullOrEmpty(rizeni.ICO)
+							? new Isir.getIsirWsCuzkDataRequest { rc = rizeni.Rc, filtrAktualniRizeni = Isir.priznakType.F, maxPocetVysledku = 50, maxRelevanceVysledku = 1 }
+							: new Isir.getIsirWsCuzkDataRequest { ic = rizeni.ICO, filtrAktualniRizeni = Isir.priznakType.F, maxPocetVysledku = 50, maxRelevanceVysledku = 2 });
+
+						foreach (var item in wsResult.data)
+						{
+							if (item.cisloSenatu != rizeni.SpisovaZnacka.SoudniOddeleni || item.bcVec != rizeni.SpisovaZnacka.Cislo || item.rocnik != rizeni.SpisovaZnacka.Rocnik)
+							{
+								Console.Write("x");
+							}
+							else
+							{
+								rizeni.AktualniStav = item.druhStavKonkursu;
+								rizeni.Url = item.urlDetailRizeni;
+								break;
+							}
+						}
 
 						await datasetConnector.AddItemToDataset(dataset, rizeni);
+						Console.Write(".");
 						count++;
 					}
 				}
@@ -123,12 +141,7 @@ namespace InsolvencniRejstrik
 		public string ICO { get; set; }
 		public string Rc { get; set; }
 		public string RcBezLomitka { get; set; }
-		// from detail
 		public string AktualniStav { get; set; }
-		public string Adresa { get; set; }
-		public DateTime PosledniZmena { get; set; } = DateTime.MinValue;
-		public string InsolvencniSpravce { get; set; }
-		public string InsolvencniSpravceKancelar { get; set; }
 		public string Url { get; set; }
 	}
 
