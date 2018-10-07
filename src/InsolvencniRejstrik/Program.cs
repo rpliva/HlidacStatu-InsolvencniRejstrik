@@ -180,7 +180,7 @@ namespace InsolvencniRejstrik
 						rizeni.AktualniStav = "ZNEPRISTUPNENO";
 
 						ForDetailRequest.Enqueue(rizeni);
-						ReadFromSearch++;
+						Interlocked.Increment(ref ReadFromSearch);
 					}
 				}
 
@@ -226,7 +226,7 @@ namespace InsolvencniRejstrik
 					{
 						if (item.cisloSenatu != rizeni.SpisovaZnacka.SoudniOddeleni || item.bcVec != rizeni.SpisovaZnacka.Cislo || item.rocnik != rizeni.SpisovaZnacka.Rocnik)
 						{
-							InvalidFileNumber++;
+							Interlocked.Increment(ref InvalidFileNumber);
 						}
 						else
 						{
@@ -238,7 +238,7 @@ namespace InsolvencniRejstrik
 
 					if (string.IsNullOrEmpty(rizeni.Url))
 					{
-						Disabled++;
+						Interlocked.Increment(ref Disabled);
 					}
 
 					ForStore.Enqueue(rizeni);
@@ -275,7 +275,7 @@ namespace InsolvencniRejstrik
 							AddError("Store", e);
 						}
 					}
-					StoredItems++;
+					Interlocked.Increment(ref StoredItems);
 					LastStoredItem = rizeni.ZahajeniRizeni;
 				}
 				else
