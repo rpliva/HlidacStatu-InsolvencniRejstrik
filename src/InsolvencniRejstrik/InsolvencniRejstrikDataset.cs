@@ -101,10 +101,13 @@
 					<td>@item.ICO</td>
 				</tr>
 			}
-            <tr>
-                <td>Zdroj na ISIR</td>
-                <td><a href=""@item.Url"" target=""_blank"">@item.Url</a></td>
-            </tr>
+			@if (!fn_IsNullOrEmpty(item.Url))
+			{
+				<tr>
+					<td>Zdroj na ISIR</td>
+					<td><a href=""@item.Url"" target=""_blank"">@item.Url</a></td>
+				</tr>
+			}
         </tbody>
     </table>"
 		};
@@ -121,7 +124,7 @@
 				{ "Jméno/název", "Nazev" }, 
 				{ "Aktualní stav", "AktualniStav" }
 			},
-			betaVersion: true,
+			betaVersion: false,
 			searchResultTemplate: SearchResultTemplate,
 			detailTemplate: DetailTemplate);
 	}

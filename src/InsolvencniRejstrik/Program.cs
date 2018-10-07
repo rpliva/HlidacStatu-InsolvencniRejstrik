@@ -1,8 +1,11 @@
 ﻿using HtmlAgilityPack;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace InsolvencniRejstrik
@@ -15,7 +18,6 @@ namespace InsolvencniRejstrik
 			Console.WriteLine("----------------------------------------------");
 			Console.WriteLine();
 
-			var apiToken = "";
 			if (args.Length < 1)
 			{
 				Console.WriteLine("Program lze take spustit s Vasim autorizacnim tokenem jako prvnim parametrem, nebude pak nutne jej zadavat v programu rucne");
@@ -25,53 +27,132 @@ namespace InsolvencniRejstrik
 				Console.WriteLine();
 				Console.WriteLine();
 				Console.WriteLine("Zadajte Vas API token: ");
-				apiToken = Console.ReadLine();
+				ApiToken = Console.ReadLine();
 			}
 			else
 			{
-				apiToken = args[0];
+				ApiToken = args[0];
 			}
 
-			var count = DownloadDataAsync(apiToken, new DateTime(2008, 1, 14), new DateTime(2008, 3, 1)).Result;
+			PrepareDataset();
+
+			Console.WriteLine("Pripravuje se prostredi");
+			var tf = new TaskFactory();
+			TaskSearch = tf.StartNew(() => SearchInsolvencyProceedings(new DateTime(2008, 1, 14), DateTime.Now.AddDays(-1)));
+			while (TaskSearch.Status != TaskStatus.Running) Thread.Sleep(10);
+			TaskWs = new Task[WsThreads];
+			for (int i = 0; i < WsThreads; i++)
+			{
+				TaskWs[i] = tf.StartNew(() => RequestsToWs());
+				while (TaskWs[i].Status != TaskStatus.Running) Thread.Sleep(10);
+			}
+			TaskStore = new Task[StoreThreads];
+			for (int i = 0; i < WsThreads; i++)
+			{
+				TaskStore[i] = tf.StartNew(() => StoreToHlidacStatu());
+				while (TaskStore[i].Status != TaskStatus.Running) Thread.Sleep(10);
+			}
+
+			var start = DateTime.Now;
+
+			while (TaskStore.Any(t => t.Status == TaskStatus.Running))
+			{
+				Console.Clear();
+				Console.WriteLine("HlidacStatu - datova sada Insolvencni rejstrik");
+				Console.WriteLine("----------------------------------------------");
+				Console.WriteLine();
+				Console.WriteLine($"   Nacteno z vyhledavani: {ReadFromSearch}");
+				Console.WriteLine($"   Ceka na nacteni detailu: {ForDetailRequest.Count}");
+				Console.WriteLine($"   Ceka a odeslani do hlidace: {ForStore.Count}");
+				Console.WriteLine($"   Celkove ulozeno: {StoredItems}");
+				Console.WriteLine();
+				Console.WriteLine($"   Odlisna spisova znacka: {InvalidFileNumber}");
+				Console.WriteLine($"   Znepristupneno: {Disabled}");
+				Console.WriteLine();
+				Console.WriteLine($"   Posledni nactene obdobi: {LastFinishedPeriodInSearch: dd.MM.yyyy}");
+				Console.WriteLine($"   Posledni ulozeny zaznam: {LastStoredItem: dd.MM.yyyy}");
+				Console.WriteLine();
+				Console.WriteLine($"   Vyhledavaci vlakno: {TaskSearch.Status}");
+				Console.WriteLine($"   Vlakno WS: {string.Join(", ", TaskWs.Select(t => t.Status.ToString()))}");
+				Console.WriteLine($"   Vlakno ukladani: {string.Join(", ", TaskStore.Select(t => t.Status.ToString()))}");
+				Console.WriteLine();
+				var duration = DateTime.Now - start;
+				Console.WriteLine($"   Doba behu: {duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}");
+				Console.WriteLine();
+				try
+				{
+					if (Errors.Any())
+					{
+						Console.WriteLine($"   Chyby:");
+						foreach (var error in Errors)
+						{
+							Console.WriteLine($"    > {error}");
+						}
+					}
+				}
+				catch (Exception e)
+				{
+					// do nothing
+				}
+
+				Thread.Sleep(1000);
+			}
+
 
 			Console.WriteLine("Stahovani dokonceno");
 			Console.ReadKey();
 		}
 
-		private static async Task<int> DownloadDataAsync(string apiToken, DateTime fromEndOfPeriodDate, DateTime until, bool removeDatasetIfExists = false, bool updateDatasetIfExists = false)
+		private static string ApiToken = "";
+		private static DateTime LastFinishedPeriodInSearch = DateTime.MinValue;
+		private static DateTime LastStoredItem = DateTime.MinValue;
+		private static int WsThreads = 4;
+		private static int StoreThreads = 4;
+		private static int ReadFromSearch = 0;
+		private static int InvalidFileNumber = 0;
+		private static int StoredItems = 0;
+		private static int Disabled = 0;
+		private static Task TaskSearch;
+		private static Task[] TaskWs;
+		private static Task[] TaskStore;
+		private static ConcurrentQueue<Rizeni> ForDetailRequest = new ConcurrentQueue<Rizeni>();
+		private static ConcurrentQueue<Rizeni> ForStore = new ConcurrentQueue<Rizeni>();
+		private static List<string> Errors = new List<string>();
+
+		private static HtmlNode MakeSearchRequest(HtmlWeb client, DateTime fromEndOfPeriodDate)
+		{
+			var content = client.Load($"https://isir.justice.cz/isir/ueu/vysledek_lustrace.do?aktualnost=AKTUALNI_I_UKONCENA&spis_znacky_datum={fromEndOfPeriodDate.ToString("dd.MM.yyyy")}&spis_znacky_obdobi=14DNI");
+			return content.DocumentNode.Descendants("table").Where(t => t.Attributes["class"]?.Value == "vysledekLustrace").Skip(1).Single();
+		}
+
+		private static void SearchInsolvencyProceedings(DateTime fromEndOfPeriodDate, DateTime until)
 		{
 			var client = new HtmlWeb();
 			client.OverrideEncoding = Encoding.GetEncoding("Windows-1250");
-			var wsClient = new Isir.IsirWsCuzkPortTypeClient();
-
-			var datasetConnector = new DatasetConnector(apiToken);
-			var dataset = InsolvencniRejstrikDataset.InsolvencniRejstrik;
-			var count = 0;
-
-			var datasetExists = await datasetConnector.DatasetExists(dataset);
-			if (datasetExists && removeDatasetIfExists)
-			{
-				Console.WriteLine("Maze se stary dataset");
-				await datasetConnector.DeleteDataset(dataset);
-				datasetExists = false;
-			}
-			if (datasetExists && updateDatasetIfExists)
-			{
-				Console.WriteLine("Aktualizuje se dataset");
-				Console.WriteLine(" > " + await datasetConnector.UpdateDataset(dataset));
-			}
-			if (!datasetExists)
-			{
-				Console.WriteLine("Vytvari se novy dataset");
-				Console.WriteLine(" > " + await datasetConnector.RegisterDataset(dataset));
-			}
-
-			Console.WriteLine("Zacina import dat do datasetu");
 
 			do
 			{
-				var content = client.Load($"https://isir.justice.cz/isir/ueu/vysledek_lustrace.do?aktualnost=AKTUALNI_I_UKONCENA&spis_znacky_datum={fromEndOfPeriodDate.ToString("dd.MM.yyyy")}&spis_znacky_obdobi=14DNI");
-				var table = content.DocumentNode.Descendants("table").Where(t => t.Attributes["class"]?.Value == "vysledekLustrace").Skip(1).Single();
+				HtmlNode table;
+
+				// slow down if queue of requests to WS is too high
+				while (ForDetailRequest.Count > 500)
+				{
+					Thread.Sleep(5000);
+				}
+
+				// retrying until get correct answer :)
+				while (true)
+				{
+					try
+					{
+						table = MakeSearchRequest(client, fromEndOfPeriodDate);
+						break;
+					}
+					catch (Exception e)
+					{
+						AddError("Search", e);
+					}
+				}
 
 				foreach (var row in table.Descendants("tr"))
 				{
@@ -83,7 +164,7 @@ namespace InsolvencniRejstrik
 							SpisovaZnacka = new SenatniZnacka
 							{
 								Soud = items[0].InnerText.Trim(),
-								SoudniOddeleni = Convert.ToInt32(items[1].InnerText.Trim()),
+								SoudniOddeleni = string.IsNullOrEmpty(items[1].InnerText.Trim()) ? 0 : Convert.ToInt32(items[1].InnerText.Trim()),
 								RejstrikovaZnacka = items[2].InnerText.Trim(),
 								Cislo = Convert.ToInt32(items[3].InnerText.Replace("/", "").Trim()),
 								Rocnik = Convert.ToInt32(items[4].InnerText.Trim())
@@ -98,36 +179,144 @@ namespace InsolvencniRejstrik
 						rizeni.Id = items[7].ChildNodes[1].Attributes["href"]?.Value?.Split(';')?.Skip(1)?.FirstOrDefault();
 						rizeni.AktualniStav = "ZNEPRISTUPNENO";
 
-						var wsResult = await wsClient.getIsirWsCuzkDataAsync(string.IsNullOrEmpty(rizeni.ICO)
-							? new Isir.getIsirWsCuzkDataRequest { rc = rizeni.Rc, filtrAktualniRizeni = Isir.priznakType.F, maxPocetVysledku = 50, maxRelevanceVysledku = 1 }
-							: new Isir.getIsirWsCuzkDataRequest { ic = rizeni.ICO, filtrAktualniRizeni = Isir.priznakType.F, maxPocetVysledku = 50, maxRelevanceVysledku = 2 });
-
-						foreach (var item in wsResult.data)
-						{
-							if (item.cisloSenatu != rizeni.SpisovaZnacka.SoudniOddeleni || item.bcVec != rizeni.SpisovaZnacka.Cislo || item.rocnik != rizeni.SpisovaZnacka.Rocnik)
-							{
-								Console.Write("x");
-							}
-							else
-							{
-								rizeni.AktualniStav = item.druhStavKonkursu;
-								rizeni.Url = item.urlDetailRizeni;
-								break;
-							}
-						}
-
-						await datasetConnector.AddItemToDataset(dataset, rizeni);
-						Console.Write(".");
-						count++;
+						ForDetailRequest.Enqueue(rizeni);
+						ReadFromSearch++;
 					}
 				}
 
-				Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] {fromEndOfPeriodDate.ToShortDateString()} - celkove {count} zaznamu");
-
+				LastFinishedPeriodInSearch = fromEndOfPeriodDate;
 				fromEndOfPeriodDate = fromEndOfPeriodDate.AddDays(14);
 			} while (fromEndOfPeriodDate < until);
 
-			return count;
+			Thread.Sleep(1000);
+		}
+
+		private static Isir.getIsirWsCuzkDataResponse MakeWsRequest(Isir.IsirWsCuzkPortTypeClient wsClient, string ico, string rc)
+		{
+			return wsClient.getIsirWsCuzkDataAsync(string.IsNullOrEmpty(ico)
+						? new Isir.getIsirWsCuzkDataRequest { rc = rc, filtrAktualniRizeni = Isir.priznakType.F, maxPocetVysledku = 50, maxRelevanceVysledku = 1 }
+						: new Isir.getIsirWsCuzkDataRequest { ic = ico, filtrAktualniRizeni = Isir.priznakType.F, maxPocetVysledku = 50, maxRelevanceVysledku = 2 }).Result;
+		}
+
+		private static void RequestsToWs()
+		{
+			var client = new Isir.IsirWsCuzkPortTypeClient();
+
+			while (TaskSearch.Status == TaskStatus.Running || !ForDetailRequest.IsEmpty)
+			{
+				Rizeni rizeni;
+				if (ForDetailRequest.TryDequeue(out rizeni))
+				{
+					Isir.getIsirWsCuzkDataResponse response;
+					// retrying until get correct answer :)
+					while (true)
+					{
+						try
+						{
+							response = MakeWsRequest(client, rizeni.ICO, rizeni.Rc);
+							break;
+						}
+						catch (Exception e)
+						{
+							AddError("WS", e);
+						}
+					}
+
+					foreach (var item in response.data)
+					{
+						if (item.cisloSenatu != rizeni.SpisovaZnacka.SoudniOddeleni || item.bcVec != rizeni.SpisovaZnacka.Cislo || item.rocnik != rizeni.SpisovaZnacka.Rocnik)
+						{
+							InvalidFileNumber++;
+						}
+						else
+						{
+							rizeni.AktualniStav = item.druhStavKonkursu;
+							rizeni.Url = item.urlDetailRizeni;
+							break;
+						}
+					}
+
+					if (string.IsNullOrEmpty(rizeni.Url))
+					{
+						Disabled++;
+					}
+
+					ForStore.Enqueue(rizeni);
+				}
+				else
+				{
+					Thread.Sleep(100);
+				}
+			}
+
+			Thread.Sleep(1000);
+		}
+
+		private static void StoreToHlidacStatu()
+		{
+			var datasetConnector = new DatasetConnector(ApiToken);
+			var dataset = InsolvencniRejstrikDataset.InsolvencniRejstrik;
+
+			while (TaskWs.Any(t => t.Status == TaskStatus.Running) || !ForDetailRequest.IsEmpty)
+			{
+				Rizeni rizeni;
+				if (ForStore.TryDequeue(out rizeni))
+				{
+					// retrying until get correct answer :)
+					while (true)
+					{
+						try
+						{
+							var result = datasetConnector.AddItemToDataset(dataset, rizeni).Result;
+							break;
+						}
+						catch (Exception e)
+						{
+							AddError("Store", e);
+						}
+					}
+					StoredItems++;
+					LastStoredItem = rizeni.ZahajeniRizeni;
+				}
+				else
+				{
+					Thread.Sleep(100);
+				}
+			}
+		}
+
+		private static void AddError(string thread, Exception e)
+		{
+			if (Errors.Count > 10)
+			{
+				Errors.Remove(Errors.First());
+			}
+			Errors.Add($"[{DateTime.Now.ToShortTimeString()}] {thread} - {e.Message}");
+			Thread.Sleep(1000);
+		}
+
+		private static void PrepareDataset(bool removeDatasetIfExists = false, bool updateDatasetIfExists = false)
+		{
+			var datasetConnector = new DatasetConnector(ApiToken);
+			var dataset = InsolvencniRejstrikDataset.InsolvencniRejstrik;
+
+			var datasetExists = datasetConnector.DatasetExists(dataset).Result;
+			if (datasetExists && removeDatasetIfExists)
+			{
+				Console.WriteLine("Maze se stary dataset");
+				datasetConnector.DeleteDataset(dataset).Wait();
+				datasetExists = false;
+			}
+			if (datasetExists && updateDatasetIfExists)
+			{
+				Console.WriteLine("Aktualizuje se dataset");
+				Console.WriteLine(" > " + datasetConnector.UpdateDataset(dataset).Result);
+			}
+			if (!datasetExists)
+			{
+				Console.WriteLine("Vytvari se novy dataset");
+				Console.WriteLine(" > " + datasetConnector.RegisterDataset(dataset).Result);
+			}
 		}
 	}
 
