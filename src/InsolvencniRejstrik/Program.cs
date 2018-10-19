@@ -1,4 +1,5 @@
-﻿using HtmlAgilityPack;
+﻿using HlidacStatu.Api.Dataset.Connector;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -315,7 +316,7 @@ namespace InsolvencniRejstrik
 			if (!datasetExists)
 			{
 				Console.WriteLine("Vytvari se novy dataset");
-				Console.WriteLine(" > " + datasetConnector.RegisterDataset(dataset).Result);
+				Console.WriteLine(" > " + datasetConnector.CreateDataset(dataset).Result);
 			}
 		}
 	}

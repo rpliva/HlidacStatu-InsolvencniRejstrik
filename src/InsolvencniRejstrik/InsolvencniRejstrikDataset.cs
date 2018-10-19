@@ -1,4 +1,6 @@
-﻿namespace InsolvencniRejstrik
+﻿using HlidacStatu.Api.Dataset.Connector;
+
+namespace InsolvencniRejstrik
 {
 	public static class InsolvencniRejstrikDataset
 	{
