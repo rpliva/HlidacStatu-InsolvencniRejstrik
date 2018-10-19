@@ -18,6 +18,15 @@ namespace InsolvencniRejstrik
 			Console.WriteLine("----------------------------------------------");
 			Console.WriteLine();
 
+			var xxx = new IsirWsConnector();
+			xxx.Handle(-1).Wait();
+			Console.ReadKey();
+			return;
+
+
+
+
+
 			if (args.Length < 1)
 			{
 				Console.WriteLine("Program lze take spustit s Vasim autorizacnim tokenem jako prvnim parametrem, nebude pak nutne jej zadavat v programu rucne");

@@ -54,6 +54,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Connected Services\IsirWs\Reference.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </Compile>
     <Compile Include="Connected Services\Isir\Reference.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -61,11 +66,25 @@
     </Compile>
     <Compile Include="DatasetConnector.cs" />
     <Compile Include="InsolvencniRejstrikDataset.cs" />
+    <Compile Include="IsirWsConnector.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Connected Services\IsirWs\InsolvencniRejstrik.IsirWs.getIsirWsPublicPodnetIdResponse.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\IsirWs\InsolvencniRejstrik.IsirWs.isirWsPublicData.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\IsirWs\InsolvencniRejstrik.IsirWs.isirWsPublicStatus.datasource">
+      <DependentUpon>Reference.svcmap</DependentUpon>
+    </None>
+    <None Include="Connected Services\IsirWs\IsirWsPublicService.wsdl" />
+    <None Include="Connected Services\IsirWs\IsirWsPublicService.xsd">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Connected Services\Isir\InsolvencniRejstrik.Isir.getIsirWsCuzkDataResponse.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </None>
@@ -85,6 +104,7 @@
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <ItemGroup>
+    <WCFMetadataStorage Include="Connected Services\IsirWs\" />
     <WCFMetadataStorage Include="Connected Services\Isir\" />
   </ItemGroup>
   <ItemGroup>
@@ -95,6 +115,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Connected Services\Isir\Reference.svcmap">
+      <Generator>WCF Proxy Generator</Generator>
+      <LastGenOutput>Reference.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Connected Services\IsirWs\configuration91.svcinfo" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Connected Services\IsirWs\configuration.svcinfo" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Connected Services\IsirWs\Reference.svcmap">
       <Generator>WCF Proxy Generator</Generator>
       <LastGenOutput>Reference.cs</LastGenOutput>
     </None>
