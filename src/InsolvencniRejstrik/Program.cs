@@ -1,6 +1,8 @@
-﻿using InsolvencniRejstrik.ByEvents;
+﻿﻿using InsolvencniRejstrik.ByEvents;
 using InsolvencniRejstrik.FromSearch;
 using NDesk.Options;
+using HlidacStatu.Api.Dataset.Connector;
+using HtmlAgilityPack;
 using System;
 
 namespace InsolvencniRejstrik
