@@ -90,7 +90,7 @@ namespace InsolvencniRejstrik.ByEvents
 				initialDate = initialDate.AddDays(14);
 				Console.WriteLine(initialDate);
 			} while (initialDate < DateTime.Now.Date);
-			Console.WriteLine("Cache prepared");
+			Console.WriteLine("Cache prednactena");
 		}
 
 		private HtmlNode MakeSearchRequest(HtmlWeb client, DateTime fromEndOfPeriodDate)
