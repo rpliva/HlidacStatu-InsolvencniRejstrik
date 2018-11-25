@@ -4,14 +4,22 @@ namespace InsolvencniRejstrik.ByEvents
 {
 	public class Osoba
 	{
-		public string IdPuvodce { get; set; }
-		public string Id { get; set; }
-		public string Nazev { get; set; }
-		public string Role { get; set; }
-		public string Typ { get; set; }
-		public string ICO { get; set; }
-		public string Rc { get; set; }
-		public DateTime? DatumNarozeni { get; set; }
+        [Nest.Keyword]
+        public string IdPuvodce { get; set; }
+        [Nest.Keyword]
+        public string Id { get; set; }
+        [Nest.Text]
+        public string Nazev { get; set; }
+        [Nest.Keyword]
+        public string Role { get; set; }
+        [Nest.Keyword]
+        public string Typ { get; set; }
+        [Nest.Keyword]
+        public string ICO { get; set; }
+        [Nest.Keyword]
+        public string Rc { get; set; }
+        [Nest.Date]
+        public DateTime? DatumNarozeni { get; set; }
 
 		public override string ToString() => Typ == "P"
 			? $"{IdPuvodce}: {Nazev} - {Role} (ic: {ICO})"

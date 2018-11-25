@@ -5,10 +5,14 @@ namespace InsolvencniRejstrik.ByEvents
 {
 	class Rizeni
 	{
-		public string SpisovaZnacka { get; set; }
-		public string Stav { get; set; }
-		public DateTime? Vyskrtnuto { get; set; }
-		public string Url { get; set; }
+        [Nest.Keyword]
+        public string SpisovaZnacka { get; set; }
+        [Nest.Keyword]
+        public string Stav { get; set; }
+        [Nest.Date]
+        public DateTime? Vyskrtnuto { get; set; }
+        [Nest.Keyword]
+        public string Url { get; set; }
 
 		public override string ToString() => $"{SpisovaZnacka} - {Stav}";
 
