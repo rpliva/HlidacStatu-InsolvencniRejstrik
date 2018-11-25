@@ -1,16 +1,25 @@
 ﻿using System;
-
+using Nest;
 namespace InsolvencniRejstrik.ByEvents
 {
 	class Dokument
 	{
+        [Nest.Keyword]
 		public string Id { get; set; }
-		public DateTime DatumVlozeni { get; set; }
-		public string Popis { get; set; }
-		public string Url { get; set; }
-		public string Oddil { get; set; }
+        [Nest.Date]
+        public DateTime DatumVlozeni { get; set; }
+        [Nest.Text]
+        public string Popis { get; set; }
+        [Nest.Keyword]
+        public string Url { get; set; }
+        [Nest.Keyword]
+        public string Oddil { get; set; }
 
-		public override string ToString() => $"{DatumVlozeni:dd.MM.yyyy} ({Oddil}) - {Popis}";
+        [Nest.Text]
+        public string PlainText { get; set; }
+
+
+        public override string ToString() => $"{DatumVlozeni:dd.MM.yyyy} ({Oddil}) - {Popis}";
 
 		protected bool Equals(Dokument other)
 		{
