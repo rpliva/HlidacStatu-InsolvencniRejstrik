@@ -17,11 +17,6 @@ namespace InsolvencniRejstrik.ByEvents
 			Stats = stats;
 		}
 
-		public long GetLastEventId()
-		{
-			return UnderlyingRepository.GetLastEventId();
-		}
-
 		public Dokument GetDocument(string id)
 		{
 			Stats.DocumentCacheGet++;

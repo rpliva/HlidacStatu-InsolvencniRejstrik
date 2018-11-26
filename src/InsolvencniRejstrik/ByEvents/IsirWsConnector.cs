@@ -11,6 +11,7 @@ namespace InsolvencniRejstrik.ByEvents
 	partial class IsirWsConnector : BaseConnector
 	{
 		private readonly IRepository Repository;
+		private readonly EventsRepository EventsRepository;
 		private readonly IIsirClient IsirClient;
 		private readonly IWsClient WsClient;
 
@@ -19,6 +20,7 @@ namespace InsolvencniRejstrik.ByEvents
 		{
 			GlobalStats = new Stats();
 			Repository = new RepositoryCache(new Repository(GlobalStats), GlobalStats);
+			EventsRepository = new EventsRepository();
 			IsirClient = noCache ? (IIsirClient)new IsirClient(GlobalStats) : new IsirClientCache(new IsirClient(GlobalStats), GlobalStats);
 			WsClient = noCache ? (IWsClient)new WsClient() : new WsClientCache(new Lazy<IWsClient>(() => new WsClient()));
 		}
@@ -27,7 +29,7 @@ namespace InsolvencniRejstrik.ByEvents
 		{
 			Console.WriteLine("Spousti se zpracovani ...");
 
-			WsProcessorTask = RunTask(() => WsProcessor(Repository.GetLastEventId()));
+			WsProcessorTask = RunTask(() => WsProcessor(EventsRepository.GetLastEventId()));
 			LinkProcessorTask = RunTask(LinkProcessor);
 			MessageProcessorTask = RunTask(MessageProcessor);
 			var StatsInfo = RunTask(StatsInfoCallback);
@@ -135,6 +137,7 @@ namespace InsolvencniRejstrik.ByEvents
 
 						Repository.SetInsolvencyProceeding(rizeni);
 					}
+					EventsRepository.SetLastEventId(item.Id);
 				}
 				else
 				{

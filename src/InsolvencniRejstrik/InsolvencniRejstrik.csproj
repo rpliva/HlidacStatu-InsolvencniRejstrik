@@ -70,7 +70,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Elasticsearch.Net, Version=6.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
-      <HintPath>C:\Projects\HlidacStatu\trunk\packages\Elasticsearch.Net.6.3.1\lib\net461\Elasticsearch.Net.dll</HintPath>
+      <HintPath>..\packages\Elasticsearch.Net.6.3.1\lib\net461\Elasticsearch.Net.dll</HintPath>
     </Reference>
     <Reference Include="HlidacStatu.Api.Dataset.Connector, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>C:\Projects\HlidacStatu\trunk\packages\HlidacStatu.Api.Dataset.Connector.1.2.0\lib\net462\HlidacStatu.Api.Dataset.Connector.dll</HintPath>
@@ -82,7 +82,7 @@
       <HintPath>C:\Projects\HlidacStatu\trunk\packages\NDesk.Options.0.2.1\lib\NDesk.Options.dll</HintPath>
     </Reference>
     <Reference Include="Nest, Version=6.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
-      <HintPath>C:\Projects\HlidacStatu\trunk\packages\NEST.6.3.1\lib\net461\Nest.dll</HintPath>
+      <HintPath>..\packages\NEST.6.3.1\lib\net461\Nest.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>C:\Projects\HlidacStatu\trunk\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -106,6 +106,7 @@
     <Compile Include="BaseConnector.cs" />
     <Compile Include="ByEvents\Dto\Dokument.cs" />
     <Compile Include="ByEvents\Isir\IIsirClient.cs" />
+    <Compile Include="ByEvents\Persistence\EventsRepository.cs" />
     <Compile Include="ByEvents\Persistence\IRepository.cs" />
     <Compile Include="ByEvents\Isir\IsirClient.cs" />
     <Compile Include="ByEvents\Isir\IsirClientCache.cs" />
@@ -138,7 +139,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="Connected Services\IsirWs\InsolvencniRejstrik.IsirWs.getIsirWsPublicPodnetIdResponse.datasource">
       <DependentUpon>Reference.svcmap</DependentUpon>
     </None>

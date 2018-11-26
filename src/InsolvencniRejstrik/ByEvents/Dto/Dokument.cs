@@ -1,5 +1,6 @@
 ﻿using System;
 using Nest;
+
 namespace InsolvencniRejstrik.ByEvents
 {
 	class Dokument

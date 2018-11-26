@@ -2,7 +2,6 @@
 {
 	interface IRepository
 	{
-		long GetLastEventId();
 		Dokument GetDocument(string id);
 		Osoba GetPerson(string id, string idPuvodce);
 		Rizeni GetInsolvencyProceeding(string spisovaZnacka);
