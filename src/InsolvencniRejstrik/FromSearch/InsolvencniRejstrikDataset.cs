@@ -1,6 +1,6 @@
 ﻿using HlidacStatu.Api.Dataset.Connector;
 
-namespace InsolvencniRejstrik
+namespace InsolvencniRejstrik.FromSearch
 {
 	public static class InsolvencniRejstrikDataset
 	{
