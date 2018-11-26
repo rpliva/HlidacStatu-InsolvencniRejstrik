@@ -8,6 +8,8 @@ namespace InsolvencniRejstrik.ByEvents
         public string IdPuvodce { get; set; }
         [Nest.Keyword]
         public string Id { get; set; }
+        [Nest.Keyword]
+        public string SpisovaZnacka { get; set; }
         [Nest.Text]
         public string Nazev { get; set; }
         [Nest.Keyword]
@@ -29,6 +31,7 @@ namespace InsolvencniRejstrik.ByEvents
 		{
 			return Equals(Id, other.Id)
 				&& Equals(IdPuvodce, other.IdPuvodce)
+				&& Equals(SpisovaZnacka, other.SpisovaZnacka)
 				&& Equals(Nazev, other.Nazev)
 				&& Equals(Role, other.Role)
 				&& Equals(Typ, other.Typ)
@@ -60,6 +63,7 @@ namespace InsolvencniRejstrik.ByEvents
 			{
 				var result = Id?.GetHashCode() ?? 0;
 				result = (result * 397) ^ (IdPuvodce?.GetHashCode() ?? 0);
+				result = (result * 397) ^ (SpisovaZnacka?.GetHashCode() ?? 0);
 				result = (result * 397) ^ (Nazev?.GetHashCode() ?? 0);
 				result = (result * 397) ^ (Role?.GetHashCode() ?? 0);
 				result = (result * 397) ^ (Typ?.GetHashCode() ?? 0);

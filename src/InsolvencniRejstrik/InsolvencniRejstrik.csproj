@@ -106,6 +106,7 @@
     <Compile Include="BaseConnector.cs" />
     <Compile Include="ByEvents\Dto\Dokument.cs" />
     <Compile Include="ByEvents\Isir\IIsirClient.cs" />
+    <Compile Include="ByEvents\Persistence\ElasticConnector.cs" />
     <Compile Include="ByEvents\Persistence\EventsRepository.cs" />
     <Compile Include="ByEvents\Persistence\IRepository.cs" />
     <Compile Include="ByEvents\Isir\IsirClient.cs" />

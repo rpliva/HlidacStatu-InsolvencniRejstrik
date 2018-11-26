@@ -40,9 +40,14 @@ namespace InsolvencniRejstrik.ByEvents
 			Errors.Insert(0, $"[{DateTime.Now:HH:mm:ss}] {message} ({eventId})");
 			TotalErrors++;
 		}
+
+		public TimeSpan Duration() {
+			return DateTime.Now - Start;
+		}
+
 		public string RunningTime()
 		{
-			var duration = DateTime.Now - Start;
+			var duration = Duration();
 			return $"{duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
 		}
 

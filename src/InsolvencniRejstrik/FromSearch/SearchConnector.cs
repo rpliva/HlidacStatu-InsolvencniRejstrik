@@ -63,7 +63,7 @@ namespace InsolvencniRejstrik.FromSearch
 						}
 					}
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					// do nothing
 				}
