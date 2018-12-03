@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -101,43 +102,63 @@ namespace InsolvencniRejstrik.ByEvents
 					GlobalStats.EventsCount++;
 					GlobalStats.LastEventId = item.Id;
 					GlobalStats.LastEventTime = item.DatumZalozeniUdalosti;
+					var retry = true;
 
-					var rizeni = Repository.GetInsolvencyProceeding(item.SpisovaZnacka) ?? CreateNewInsolvencyProceeding(item.SpisovaZnacka);
-
-					if (!string.IsNullOrEmpty(item.DokumentUrl))
+					while (retry)
 					{
-						Repository.SetDocument(new Dokument { Id = item.Id.ToString(), SpisovaZnacka = item.SpisovaZnacka, Url = item.DokumentUrl, DatumVlozeni = item.DatumZalozeniUdalosti, Popis = item.PopisUdalosti });
-						GlobalStats.DocumentCount++;
-					}
-
-					if (!string.IsNullOrEmpty(item.Poznamka))
-					{
-						var xdoc = XDocument.Parse(item.Poznamka);
-
-						var datumVyskrtnuti = ParseValue(xdoc, "//datumVyskrtnuti");
-						if (!string.IsNullOrEmpty(datumVyskrtnuti))
+						try
 						{
-							rizeni.Vyskrtnuto = DateTime.Parse(datumVyskrtnuti);
-						}
+							var rizeni = Repository.GetInsolvencyProceeding(item.SpisovaZnacka) ?? CreateNewInsolvencyProceeding(item.SpisovaZnacka);
 
-						switch (item.TypUdalosti)
-						{
-							case "1": // zmena osoby
-								ProcessPersonChangedEvent(xdoc, rizeni, item.Id);
-								break;
-							default:
-								var state = xdoc.XPathSelectElement("//vec/druhStavRizeni");
-								if (state != null && rizeni.Stav != state.Value)
+							if (!string.IsNullOrEmpty(item.DokumentUrl))
+							{
+								Repository.SetDocument(new Dokument { Id = item.Id.ToString(), SpisovaZnacka = item.SpisovaZnacka, Url = item.DokumentUrl, DatumVlozeni = item.DatumZalozeniUdalosti, Popis = item.PopisUdalosti });
+								GlobalStats.DocumentCount++;
+							}
+
+							if (!string.IsNullOrEmpty(item.Poznamka))
+							{
+								var xdoc = XDocument.Parse(item.Poznamka);
+
+								var datumVyskrtnuti = ParseValue(xdoc, "//datumVyskrtnuti");
+								if (!string.IsNullOrEmpty(datumVyskrtnuti))
 								{
-									rizeni.Stav = state.Value;
-									GlobalStats.StateChangedCount++;
+									rizeni.Vyskrtnuto = DateTime.Parse(datumVyskrtnuti);
 								}
-								break;
-						}
 
-						Repository.SetInsolvencyProceeding(rizeni);
+								switch (item.TypUdalosti)
+								{
+									case "1": // zmena osoby
+										ProcessPersonChangedEvent(xdoc, rizeni, item.Id);
+										break;
+									default:
+										var state = xdoc.XPathSelectElement("//vec/druhStavRizeni");
+										if (state != null && rizeni.Stav != state.Value)
+										{
+											rizeni.Stav = state.Value;
+											GlobalStats.StateChangedCount++;
+										}
+										break;
+								}
+
+								Repository.SetInsolvencyProceeding(rizeni);
+							}
+							EventsRepository.SetLastEventId(item.Id);
+							retry = false;
+						}
+						catch (Exception e)
+						{
+							GlobalStats.WriteError($"Message task - {e.Message}", item.Id);
+							File.AppendAllText("errors.log", $@"""
+[{DateTime.Now}]
+{item.Id} - {item.SpisovaZnacka} - {item.PopisUdalosti}
+{e.Message}
+{e.StackTrace}
+""");
+							retry = true;
+							Thread.Sleep(100);
+						}
 					}
-					EventsRepository.SetLastEventId(item.Id);
 				}
 				else
 				{
@@ -164,7 +185,8 @@ namespace InsolvencniRejstrik.ByEvents
 				var key = $"{idPuvodce}-{osobaId}";
 				var osoba = Repository.GetPerson(osobaId, idPuvodce) ?? CreateNewPerson(osobaId, idPuvodce);
 
-				if (!string.IsNullOrEmpty(osoba.SpisovaZnacka) && rizeni.SpisovaZnacka != osoba.SpisovaZnacka) {
+				if (!string.IsNullOrEmpty(osoba.SpisovaZnacka) && rizeni.SpisovaZnacka != osoba.SpisovaZnacka)
+				{
 					throw new ArgumentException("Rozdilna spisova znacka pro stejnou osobu => kombinace IdPuvodce a OsobaId neni dostatecne");
 				}
 				osoba.SpisovaZnacka = rizeni.SpisovaZnacka;
@@ -203,7 +225,8 @@ namespace InsolvencniRejstrik.ByEvents
 			}
 		}
 
-		private Osoba CreateNewPerson(string osobaId, string idPuvodce) {
+		private Osoba CreateNewPerson(string osobaId, string idPuvodce)
+		{
 			GlobalStats.NewOsobaCount++;
 			return new Osoba { IdPuvodce = idPuvodce, Id = osobaId };
 		}
