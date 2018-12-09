@@ -28,25 +28,33 @@ namespace InsolvencniRejstrik.ByEvents
 			};
 		}
 
+		private const char Separator = '#';
+
 		public static WsResult From(string item)
 		{
-			var parts = item.Split('#');
-			if (parts.Length < 8)
+			var idIndex = item.IndexOf(Separator, 0) + 1;
+			var spisovaZnackaIndex = item.IndexOf(Separator, idIndex) + 1;
+			var typUdalostiIndex = item.IndexOf(Separator, spisovaZnackaIndex) + 1;
+			var popisUdalostiIndex = item.IndexOf(Separator, typUdalostiIndex) + 1;
+			var datumZalozeniUdalostiIndex = item.IndexOf(Separator, popisUdalostiIndex) + 1;
+			var dokumentUrlIndex = item.IndexOf(Separator, datumZalozeniUdalostiIndex) + 1;
+			var oddilIndex = item.IndexOf(Separator, dokumentUrlIndex) + 1;
+
+			if (oddilIndex < 0)
 			{
 				return null;
 			}
 
-			var index = 0;
 			return new WsResult
 			{
-				Id = Convert.ToInt64(parts[index++]),
-				SpisovaZnacka = parts[index++],
-				TypUdalosti = parts[index++],
-				PopisUdalosti = parts[index++],
-				DatumZalozeniUdalosti = DateTime.Parse(parts[index++]),
-				DokumentUrl = parts[index++],
-				Oddil = parts[index++],
-				Poznamka = parts[index++]?.Replace("@<fl>", "\n")?.Replace("@<cr>", "\r"),
+				Id = Convert.ToInt64(item.Substring(0, idIndex - 1)),
+				SpisovaZnacka = item.Substring(idIndex, spisovaZnackaIndex - idIndex - 1),
+				TypUdalosti = item.Substring(spisovaZnackaIndex, typUdalostiIndex - spisovaZnackaIndex - 1),
+				PopisUdalosti = item.Substring(typUdalostiIndex, popisUdalostiIndex - typUdalostiIndex - 1),
+				DatumZalozeniUdalosti = DateTime.Parse(item.Substring(popisUdalostiIndex, datumZalozeniUdalostiIndex - popisUdalostiIndex - 1)),
+				DokumentUrl = item.Substring(datumZalozeniUdalostiIndex, dokumentUrlIndex - datumZalozeniUdalostiIndex - 1),
+				Oddil = item.Substring(dokumentUrlIndex, oddilIndex - dokumentUrlIndex - 1),
+				Poznamka = item.Substring(oddilIndex)?.Replace("@<fl>", "\n")?.Replace("@<cr>", "\r"),
 			};
 		}
 
@@ -54,5 +62,51 @@ namespace InsolvencniRejstrik.ByEvents
 		{
 			return $"{Id}#{SpisovaZnacka}#{TypUdalosti}#{PopisUdalosti}#{DatumZalozeniUdalosti}#{DokumentUrl}#{Oddil}#{Poznamka?.Replace("\n", "@<fl>")?.Replace("\r", "@<cr>")}";
 		}
+
+		protected bool Equals(WsResult other)
+		{
+			return Equals(Id, other.Id)
+				&& Equals(DokumentUrl, other.DokumentUrl)
+				&& Equals(TypUdalosti, other.TypUdalosti)
+				&& Equals(PopisUdalosti, other.PopisUdalosti)
+				&& Equals(SpisovaZnacka, other.SpisovaZnacka)
+				&& Equals(Oddil, other.Oddil)
+				&& Equals(Poznamka, other.Poznamka)
+				&& Equals(DatumZalozeniUdalosti, other.DatumZalozeniUdalosti);
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (ReferenceEquals(null, obj))
+			{
+				return false;
+			}
+			if (ReferenceEquals(this, obj))
+			{
+				return true;
+			}
+			if (obj.GetType() != GetType())
+			{
+				return false;
+			}
+			return Equals((WsResult)obj);
+		}
+
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				var result = Id.GetHashCode();
+				result = (result * 397) ^ (DokumentUrl?.GetHashCode() ?? 0);
+				result = (result * 397) ^ (TypUdalosti?.GetHashCode() ?? 0);
+				result = (result * 397) ^ (PopisUdalosti?.GetHashCode() ?? 0);
+				result = (result * 397) ^ SpisovaZnacka.GetHashCode();
+				result = (result * 397) ^ (Oddil?.GetHashCode() ?? 0);
+				result = (result * 397) ^ (Poznamka?.GetHashCode() ?? 0);
+				result = (result * 397) ^ DatumZalozeniUdalosti.GetHashCode();
+				return result;
+			}
+		}
+
 	}
 }

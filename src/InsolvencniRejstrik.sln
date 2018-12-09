@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28010.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InsolvencniRejstrik", "InsolvencniRejstrik\InsolvencniRejstrik.csproj", "{8413B2DE-D63E-4A0F-95AD-63128FE4348E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InsolvencniRejstrikTest", "InsolvencniRejstrikTest\InsolvencniRejstrikTest.csproj", "{FA44A342-1078-4C23-AF41-D18DC99CE112}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{8413B2DE-D63E-4A0F-95AD-63128FE4348E}.Debug|Any CPU.Build.0 = Debug|x64
 		{8413B2DE-D63E-4A0F-95AD-63128FE4348E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8413B2DE-D63E-4A0F-95AD-63128FE4348E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA44A342-1078-4C23-AF41-D18DC99CE112}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA44A342-1078-4C23-AF41-D18DC99CE112}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA44A342-1078-4C23-AF41-D18DC99CE112}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA44A342-1078-4C23-AF41-D18DC99CE112}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

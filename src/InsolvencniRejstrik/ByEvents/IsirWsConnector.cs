@@ -276,7 +276,7 @@ namespace InsolvencniRejstrik.ByEvents
 				Console.WriteLine($"   Data rizeni: R{GlobalStats.InsolvencyProceedingGet}/W{GlobalStats.InsolvencyProceedingSet} (cache R{GlobalStats.InsolvencyProceedingCacheGet}/W{GlobalStats.InsolvencyProceedingCacheSet})");
 				Console.WriteLine();
 				Console.WriteLine($"   Errors (total: {GlobalStats.TotalErrors}):");
-				foreach (var error in GlobalStats.Errors)
+				foreach (var error in GlobalStats.Errors.ToArray())
 				{
 					Console.WriteLine($"    - {error}");
 				}
