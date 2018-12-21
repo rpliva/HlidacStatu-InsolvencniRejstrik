@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace InsolvencniRejstrik.ByEvents
@@ -22,7 +23,18 @@ namespace InsolvencniRejstrik.ByEvents
 						latestId = item.id;
 					}
 				}
+				else
+				{
+					throw new WsClientException($"WS client returns {response.status.stav} ({response.status.kodChyby})\n {response.status.popisChyby}");
+				}
 			} while (response.status.stav == IsirWs.stavType.OK && response.data.Count() > 0);
 		}
+	}
+
+	class WsClientException : ApplicationException
+	{
+		public WsClientException(string message)
+			: base(message)
+		{ }
 	}
 }
