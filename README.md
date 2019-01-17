@@ -37,11 +37,11 @@ Program v tomto režimu čte události od posledního v databázi uloženého ID
 
 ### Jak spustit
 
-Program je potřeba spustit s přepínačem `-e` nebo `--events`, který definuje zpracování změnových událostí a jejich ukládání do databáze.
+Program je potřeba spustit s přepínačem `-e` nebo `--events`, který definuje zpracování změnových událostí a jejich ukládání do databáze. Program se ukončí při přečtení všech zpráv v insolvenčním rejstříku. Pokud chcete, aby program běžel i po přečtení všech zpráv a kontroloval pravidelně nové události, použijte přepínač `--watch`.
 
 V případě, že nechcete číst a ukládat eventy do lokalní cache, použijte přepínač `--no-cache` a všechny dotazy budou pouze proti webovým službám Insolvenčního rejstříku. Pokud přepínač není zadán, nejprve se zkouší prohled lokální cache a až poté se provádí dotazy na webové služby Insolvenčního rejstříku. Každá událost vrácená z webové služby je zároven uložena do lokální cache (velikost lokální cache pro kompletní data může mít i několik desítek GB).
 
-Pro urychlení zpracování doporučují inicializovat cache pro načítání odkazů na detaily jednotlivých řízení. Inicializace cache se provede pomocí přepínače `--init-link-cache` (velikost lokální cache odkazů je několik desítek MB)
+Pro urychlení zpracování doporučuji inicializovat cache pro načítání odkazů na detaily jednotlivých řízení. Inicializace cache se provede pomocí přepínače `--init-link-cache` (velikost lokální cache odkazů je několik desítek MB).
 
 _inicializace cache odkazů_
 ```
