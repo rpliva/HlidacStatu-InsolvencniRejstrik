@@ -15,15 +15,17 @@ namespace InsolvencniRejstrik.ByEvents
 		private readonly EventsRepository EventsRepository;
 		private readonly IIsirClient IsirClient;
 		private readonly IWsClient WsClient;
+		private readonly bool Watch;
 
 
-		public IsirWsConnector(bool noCache)
+		public IsirWsConnector(bool noCache, bool watch)
 		{
 			GlobalStats = new Stats();
 			Repository = new RepositoryCache(new Repository(GlobalStats), GlobalStats);
 			EventsRepository = new EventsRepository();
 			IsirClient = noCache ? (IIsirClient)new IsirClient(GlobalStats) : new IsirClientCache(new IsirClient(GlobalStats), GlobalStats);
 			WsClient = noCache ? (IWsClient)new WsClient() : new WsClientCache(new Lazy<IWsClient>(() => new WsClient()));
+			Watch = watch;
 		}
 
 		public void Handle()
@@ -66,7 +68,14 @@ namespace InsolvencniRejstrik.ByEvents
 						}
 					}
 
-					return;
+					if (Watch)
+					{
+						Thread.Sleep(TimeSpan.FromMinutes(10));
+					}
+					else
+					{
+						return;
+					}
 				}
 				catch (Exception e)
 				{
