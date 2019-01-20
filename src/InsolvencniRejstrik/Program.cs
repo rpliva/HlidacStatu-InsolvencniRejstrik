@@ -48,17 +48,11 @@ namespace InsolvencniRejstrik
 			{
 				var connector = new SearchConnector(apiToken);
 				connector.Handle(date);
-
-				Console.WriteLine("Stahovani dokonceno");
-				Console.ReadKey();
 			}
 			else if (events)
 			{
 				var connector = new IsirWsConnector(noCache, watch);
 				connector.Handle();
-
-				Console.WriteLine("Stahovani dokonceno");
-				Console.ReadKey();
 			}
 			else
 			{
