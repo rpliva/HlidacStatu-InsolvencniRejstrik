@@ -13,6 +13,7 @@ namespace InsolvencniRejstrik.ByEvents
 		private readonly IIsirClient UnderlyingClient;
 		private const string CacheFile = "isir_client_cache.csv";
 		private readonly ConcurrentDictionary<string, string> CachedUrls = new ConcurrentDictionary<string, string>();
+		private readonly ConcurrentDictionary<string, string> CachedSoudy = new ConcurrentDictionary<string, string>();
 
 		public IsirClientCache(IIsirClient underlyingClient, Stats globalStats)
 		{
@@ -25,6 +26,7 @@ namespace InsolvencniRejstrik.ByEvents
 				{
 					var parts = item.Split(';');
 					CachedUrls.TryAdd($"{parts[2]} {parts[3]}/{parts[4]}", "https://isir.justice.cz/isir/ueu/" + parts[8]);
+					CachedSoudy.TryAdd($"{parts[2]} {parts[3]}/{parts[4]}", parts[0]);
 				}
 			}
 		}
@@ -40,6 +42,21 @@ namespace InsolvencniRejstrik.ByEvents
 			{
 				var value = UnderlyingClient.GetUrl(spisovaZnacka);
 				CachedUrls.TryAdd(spisovaZnacka, url);
+				return value;
+			}
+		}
+
+		public string GetSoud(string spisovaZnacka)
+		{
+			if (CachedSoudy.TryGetValue(spisovaZnacka, out var soud))
+			{
+				//GlobalStats.LinkCacheCount++;
+				return soud;
+			}
+			else
+			{
+				var value = UnderlyingClient.GetSoud(spisovaZnacka);
+				CachedSoudy.TryAdd(spisovaZnacka, soud);
 				return value;
 			}
 		}
