@@ -15,19 +15,12 @@ namespace InsolvencniRejstrik.ByEvents
 			Elastic = new ElasticConnector();
 		}
 
-		public Osoba GetPerson(string id, string idPuvodce)
+		public Osoba GetPerson(OsobaId id)
 		{
 			var res = Elastic.GetESClient(Database.Osoba)
 				.Search<Osoba>(s => s
 					.Size(1) //zrus, pokud ma vratit vice zaznamu
-					.Query(q => q
-					.Bool(b => b.Must(
-							m => m.Term(t => t.Field(f => f.Id).Value(id))
-							,
-							m => m.Term(t => t.Field(f => f.IdPuvodce).Value(idPuvodce))
-						  )
-						)
-					)
+					.Query(q => q.Term(t => t.Field(f => f.Id).Value(id.GetId())))
 				);
 			if (res.IsValid)
 			{

@@ -7,7 +7,7 @@ namespace InsolvencniRejstrik.ByEvents
 {
 	class ElasticConnector
 	{
-		private readonly string[] ElasticIndexNames = new[] { "insolvencnirestrik-dokument", "insolvencnirestrik-osoba", "insolvencnirestrik-rizeni" };
+		private readonly string[] ElasticIndexNames = new[] { "insolvencnirestrik-dokument", "insolvencnirestrik-osoba2", "insolvencnirestrik-rizeni2" };
 
 		private static readonly object LockRoot = new object();
 		private Dictionary<string, ElasticClient> Clients = new Dictionary<string, ElasticClient>();
@@ -24,7 +24,7 @@ namespace InsolvencniRejstrik.ByEvents
 					{
 						var settings = GetElasticSearchConnectionSettings(idxname, timeOut, connectionLimit);
 						var client = new ElasticClient(settings);
-						CreateElasticIndex(client);
+						CreateElasticIndex(db, client);
 						Clients.Add(cnnset, client);
 					}
 				}
@@ -73,7 +73,7 @@ namespace InsolvencniRejstrik.ByEvents
 			return ConfigurationManager.AppSettings[value] ?? string.Empty;
 		}
 
-		private void CreateElasticIndex(ElasticClient client)
+		private void CreateElasticIndex(Database db, ElasticClient client)
 		{
 			var ret = client.IndexExists(client.ConnectionSettings.DefaultIndex);
 			if (!ret.Exists)
@@ -101,9 +101,20 @@ namespace InsolvencniRejstrik.ByEvents
 				var res = client
 				   .CreateIndex(client.ConnectionSettings.DefaultIndex, i => i
 					   .InitializeUsing(idxSt)
-					   .Mappings(m => m
-						   .Map<Dokument>(map => map.AutoMap().DateDetection(false))
-						   )
+					   .Mappings(m =>
+					   {
+						   switch (db)
+						   {
+							   case Database.Dokument:
+								   return m.Map<Dokument>(map => map.AutoMap().DateDetection(false));
+							   case Database.Osoba:
+								   return m.Map<Osoba>(map => map.AutoMap().DateDetection(false));
+							   case Database.Rizeni:
+								   return m.Map<Rizeni>(map => map.AutoMap().DateDetection(false));
+							   default:
+								   throw new ArgumentOutOfRangeException($"Unknown DB type {db.ToString()}");
+						   }
+					   })
 				   );
 			}
 		}

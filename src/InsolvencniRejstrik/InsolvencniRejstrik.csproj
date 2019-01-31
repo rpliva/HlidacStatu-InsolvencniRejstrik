@@ -111,10 +111,10 @@
     <Compile Include="ByEvents\Persistence\IRepository.cs" />
     <Compile Include="ByEvents\Isir\IsirClient.cs" />
     <Compile Include="ByEvents\Isir\IsirClientCache.cs" />
+    <Compile Include="ByEvents\Persistence\RepositoryCache.cs" />
     <Compile Include="ByEvents\Ws\IWsClient.cs" />
     <Compile Include="ByEvents\Dto\Osoba.cs" />
     <Compile Include="ByEvents\Persistence\Repository.cs" />
-    <Compile Include="ByEvents\Persistence\RepositoryCache.cs" />
     <Compile Include="ByEvents\Dto\Rizeni.cs" />
     <Compile Include="ByEvents\Stats.cs" />
     <Compile Include="ByEvents\Ws\WsClient.cs" />

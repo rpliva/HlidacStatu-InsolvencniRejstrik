@@ -3,7 +3,7 @@
 	interface IRepository
 	{
 		Dokument GetDocument(string id);
-		Osoba GetPerson(string id, string idPuvodce);
+		Osoba GetPerson(OsobaId id);
 		Rizeni GetInsolvencyProceeding(string spisovaZnacka);
 		void SetDocument(Dokument item);
 		void SetPerson(Osoba item);
