@@ -22,8 +22,10 @@ namespace InsolvencniRejstrik
 			var noCache = false;
 			var initCache = false;
 			var help = false;
+			var createIndexes = false;
 
 			var options = new OptionSet() {
+				{ "create-indexes", "vytvori indexy v elastiku", v => createIndexes = true },
 				{ "s|search", "definuje rezim dle vyhledavani", v => search = true },
 				{ "apitoken=", "ApiToken pro pristup k datovym sadam (povinny, pouze pro rezim vyhledavani)", v => apiToken = v },
 				{ "date=", "datum zahajeni hledani (nepovinny, default 1.1.2008, pouze pro rezim vyhledavani)", (DateTime v) => date = v },
@@ -38,7 +40,15 @@ namespace InsolvencniRejstrik
 			{
 				PrintHelp(options);
 			}
-			else if (initCache) {
+			else if (createIndexes)
+			{
+				var es = new ElasticConnector();
+				es.GetESClient(Database.Dokument);
+				es.GetESClient(Database.Osoba);
+				es.GetESClient(Database.Rizeni);
+			}
+			else if (initCache)
+			{
 				Console.WriteLine("Spousti se prednacteni cache (vypsany datum znaci stazene obdobi)");
 				new IsirClientCache(null, null).PrepareCache(new DateTime(2008, 1, 1));
 			}

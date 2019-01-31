@@ -7,7 +7,7 @@ namespace InsolvencniRejstrik.ByEvents
 {
 	class ElasticConnector
 	{
-		private readonly string[] ElasticIndexNames = new[] { "insolvencnirestrik-dokument", "insolvencnirestrik-osoba", "insolvencnirestrik-rizeni" };
+		private readonly string[] ElasticIndexNames = new[] { "insolvencnirestrik-dokument", "insolvencnirestrik-osoba2", "insolvencnirestrik-rizeni2" };
 
 		private static readonly object LockRoot = new object();
 		private Dictionary<string, ElasticClient> Clients = new Dictionary<string, ElasticClient>();
