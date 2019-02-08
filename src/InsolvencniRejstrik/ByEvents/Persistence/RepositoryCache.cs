@@ -23,7 +23,7 @@ namespace InsolvencniRejstrik.ByEvents
 		public Rizeni GetInsolvencyProceeding(string spisovaZnacka) => RizeniCache.GetOrAdd(spisovaZnacka, UnderlyingRepository.GetInsolvencyProceeding(spisovaZnacka) ?? CreateNewInsolvencyProceeding(spisovaZnacka));
 		public Osoba GetPerson(OsobaId id) => OsobaCache.GetOrAdd(id.GetId(), UnderlyingRepository.GetPerson(id) ?? CreateNewPerson(id));
 		public void SetDocument(Dokument item) => UnderlyingRepository.SetDocument(item);
-		public void SetInsolvencyProceeding(Rizeni item) => UnderlyingRepository.SetInsolvencyProceeding(item);
-		public void SetPerson(Osoba item) => UnderlyingRepository.SetPerson(item);
+		public void SetInsolvencyProceeding(Rizeni item)  => UnderlyingRepository.SetInsolvencyProceeding(item);
+		public void SetPerson(Osoba item)  => UnderlyingRepository.SetPerson(item);
 	}
 }

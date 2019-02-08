@@ -25,7 +25,7 @@ namespace InsolvencniRejstrik.ByEvents
 				foreach (var item in File.ReadLines(CacheFile))
 				{
 					var parts = item.Split(';');
-					CachedUrls.TryAdd($"{parts[2]} {parts[3]}/{parts[4]}", "https://isir.justice.cz/isir/ueu/" + parts[8]);
+					CachedUrls.TryAdd($"{parts[2]} {parts[3]}/{parts[4]}", "https://isir.justice.cz/isir/ueu/evidence_upadcu_detail.do?id=" + parts[8]);
 					CachedSoudy.TryAdd($"{parts[2]} {parts[3]}/{parts[4]}", parts[0]);
 				}
 			}
@@ -42,21 +42,6 @@ namespace InsolvencniRejstrik.ByEvents
 			{
 				var value = UnderlyingClient.GetUrl(spisovaZnacka);
 				CachedUrls.TryAdd(spisovaZnacka, url);
-				return value;
-			}
-		}
-
-		public string GetSoud(string spisovaZnacka)
-		{
-			if (CachedSoudy.TryGetValue(spisovaZnacka, out var soud))
-			{
-				//GlobalStats.LinkCacheCount++;
-				return soud;
-			}
-			else
-			{
-				var value = UnderlyingClient.GetSoud(spisovaZnacka);
-				CachedSoudy.TryAdd(spisovaZnacka, soud);
 				return value;
 			}
 		}

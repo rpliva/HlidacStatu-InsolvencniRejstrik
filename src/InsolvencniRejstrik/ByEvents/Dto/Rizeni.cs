@@ -88,12 +88,15 @@ namespace InsolvencniRejstrik.ByEvents
 		public string ICO { get; set; }
 		[Nest.Keyword]
 		public string Rc { get; set; }
+		[Nest.Keyword]
+		public string Role { get; set; }
 
 		protected bool Equals(Subjekt other)
 		{
 			return Equals(Nazev, other.Nazev)
 				&& Equals(ICO, other.ICO)
-				&& Equals(Rc, other.Rc);
+				&& Equals(Rc, other.Rc)
+				&& Equals(Role, other.Role);
 		}
 
 		public override bool Equals(object obj)
@@ -120,6 +123,7 @@ namespace InsolvencniRejstrik.ByEvents
 				var result = Nazev?.GetHashCode() ?? 0;
 				result = (result * 397) ^ ICO?.GetHashCode() ?? 0;
 				result = (result * 397) ^ Rc?.GetHashCode() ?? 0;
+				result = (result * 397) ^ Role?.GetHashCode() ?? 0;
 				return result;
 			}
 		}
