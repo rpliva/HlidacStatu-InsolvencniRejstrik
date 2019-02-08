@@ -18,15 +18,21 @@ namespace InsolvencniRejstrik.ByEvents
 		private readonly EventsRepository EventsRepository;
 		private readonly IIsirClient IsirClient;
 		private readonly IWsClient WsClient;
+		private readonly bool IgnoreDocuments;
+		private readonly bool OnlyDocuments;
+		private readonly int ToEventId;
 
 
-		public IsirWsConnector(bool noCache)
+		public IsirWsConnector(bool noCache, bool ignoreDocuments, bool onlyDocuments, int toEventId)
 		{
 			GlobalStats = new Stats();
 			Repository = new RepositoryCache(new Repository(GlobalStats), CreateNewInsolvencyProceeding, CreateNewPerson);
 			EventsRepository = new EventsRepository();
 			IsirClient = noCache ? (IIsirClient)new IsirClient(GlobalStats) : new IsirClientCache(new IsirClient(GlobalStats), GlobalStats);
 			WsClient = noCache ? (IWsClient)new WsClient() : new WsClientCache(new Lazy<IWsClient>(() => new WsClient()));
+			IgnoreDocuments = ignoreDocuments;
+			OnlyDocuments = onlyDocuments;
+			ToEventId = toEventId;
 		}
 
 		public void Handle()
@@ -60,10 +66,15 @@ namespace InsolvencniRejstrik.ByEvents
 				{
 					foreach (var item in WsClient.Get(id))
 					{
+						if (ToEventId > 0 && item.Id > ToEventId)
+						{
+							return;
+						}
+
 						WsResultsQueue.Enqueue(item);
 						lastId = item.Id;
 
-						while (WsResultsQueue.Count > 3000)
+						while (WsResultsQueue.Count > 3_000)
 						{
 							Thread.Sleep(10_000);
 						}
@@ -86,7 +97,6 @@ namespace InsolvencniRejstrik.ByEvents
 				if (item != null)
 				{
 					item.Url = IsirClient.GetUrl(item.SpisovaZnacka);
-					item.Soud = IsirClient.GetSoud(item.SpisovaZnacka);
 				}
 				else
 				{
@@ -115,15 +125,27 @@ namespace InsolvencniRejstrik.ByEvents
 							var rizeni = Repository.GetInsolvencyProceeding(item.SpisovaZnacka);
 							var lastChanged = rizeni.PosledniZmena;
 
-							if (!string.IsNullOrEmpty(item.DokumentUrl))
+							ProcessDocument(item, rizeni);
+							if (OnlyDocuments)
 							{
-								Repository.SetDocument(new Dokument { Id = item.Id.ToString(), SpisovaZnacka = item.SpisovaZnacka, Url = item.DokumentUrl, DatumVlozeni = item.DatumZalozeniUdalosti, Popis = item.PopisUdalosti });
-								GlobalStats.DocumentCount++;
+								EventsRepository.SetLastEventId(item.Id);
+								break;
 							}
 
 							if (!string.IsNullOrEmpty(item.Poznamka))
 							{
 								var xdoc = XDocument.Parse(item.Poznamka);
+
+								if (string.IsNullOrEmpty(rizeni.Soud))
+								{
+									var puvodce = ParseValue(xdoc, "idOsobyPuvodce");
+
+									if (puvodce.Length > 0)
+									{
+										rizeni.Soud = puvodce;
+										rizeni.PosledniZmena = lastChanged;
+									}
+								}
 
 								var datumVyskrtnuti = ParseValue(xdoc, "datumVyskrtnuti");
 								if (!string.IsNullOrEmpty(datumVyskrtnuti))
@@ -136,28 +158,19 @@ namespace InsolvencniRejstrik.ByEvents
 								{
 									case "1": // zmena osoby
 										var osoba = ProcessPersonChangedEvent(xdoc, rizeni, item.Id);
-
-										var subjekt = new Subjekt { Nazev = osoba.Nazev.ToUpperInvariant(), ICO = osoba.ICO, Rc = osoba.Rc };
-										if (!rizeni.Subjekty.Contains(subjekt))
-										{
-											rizeni.Subjekty.Add(subjekt);
-											rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
-										}
-
+										AddToSubjects(osoba, rizeni, item.DatumZalozeniUdalosti);
 										break;
 									case "2": // zmena adresy osoby
 										var osobaSAdresou = ProcessAddressChangedEvent(xdoc, rizeni, item.Id);
-
-										var subjektSAdresou = new Subjekt { Nazev = osobaSAdresou.Nazev.ToUpperInvariant(), ICO = osobaSAdresou.ICO, Rc = osobaSAdresou.Rc };
-										if (!rizeni.Subjekty.Contains(subjektSAdresou))
-										{
-											rizeni.Subjekty.Add(subjektSAdresou);
-											rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
-										}
+										AddToSubjects(osobaSAdresou, rizeni, item.DatumZalozeniUdalosti);
 										break;
 									case "5": // insolvencni navrh
-										rizeni.DatumZalozeni = item.DatumZalozeniUdalosti;
-										rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
+									case "185": // Vyhlaska o zahajeni insolvencniho rizeni
+										if (!rizeni.DatumZalozeni.HasValue || rizeni.DatumZalozeni.Value > item.DatumZalozeniUdalosti)
+										{
+											rizeni.DatumZalozeni = item.DatumZalozeniUdalosti;
+											rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
+										}
 										break;
 									default:
 										var state = ParseValue(xdoc.Descendants("vec").FirstOrDefault(), "druhStavRizeni");
@@ -195,6 +208,39 @@ namespace InsolvencniRejstrik.ByEvents
 				else
 				{
 					Thread.Sleep(100);
+				}
+			}
+		}
+
+		private void ProcessDocument(WsResult item, Rizeni rizeni)
+		{
+			if (!string.IsNullOrEmpty(item.DokumentUrl) && !IgnoreDocuments)
+			{
+				var document = Repository.GetDocument(item.Id.ToString()) ?? new Dokument
+				{
+					Id = item.Id.ToString(),
+					SpisovaZnacka = item.SpisovaZnacka,
+				};
+
+				document.Url = item.DokumentUrl;
+				document.DatumVlozeni = item.DatumZalozeniUdalosti;
+				document.Popis = item.PopisUdalosti;
+				document.Oddil = item.Oddil;
+
+				Repository.SetDocument(document);
+				rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
+				GlobalStats.DocumentCount++;
+			}
+		}
+
+		private void AddToSubjects(Osoba osoba, Rizeni rizeni, DateTime lastChanged) {
+			if (osoba.Role != "SPRÁVCE")
+			{
+				var subjekt = new Subjekt { Nazev = osoba.Nazev.ToUpperInvariant(), ICO = osoba.ICO, Rc = osoba.Rc, Role = osoba.Role.Substring(0, 1) };
+				if (rizeni.Subjekty.All(s => s.Rc != osoba.Rc || s.ICO != osoba.ICO))
+				{
+					rizeni.Subjekty.Add(subjekt);
+					rizeni.PosledniZmena = lastChanged;
 				}
 			}
 		}
@@ -343,8 +389,8 @@ namespace InsolvencniRejstrik.ByEvents
 			{
 				PrintHeader();
 				var speed = GlobalStats.EventsCount / GlobalStats.Duration().TotalSeconds;
-				var remains = speed > 0 && GlobalStats.LastEventId < 39_000_000
-					? $" => {TimeSpan.FromSeconds((39_000_000 - GlobalStats.EventsCount) / speed)}"
+				var remains = speed > 0 && GlobalStats.LastEventId < ToEventId
+					? $" => {TimeSpan.FromSeconds((ToEventId - GlobalStats.EventsCount) / speed)}"
 					: string.Empty;
 				Console.WriteLine($"   Zpracovano udalosti: {GlobalStats.EventsCount} ({speed:0.00} udalost/s{remains})");
 				Console.WriteLine($"   Doba behu: {GlobalStats.RunningTime()}");

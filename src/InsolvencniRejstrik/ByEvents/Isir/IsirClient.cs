@@ -26,20 +26,7 @@ namespace InsolvencniRejstrik.ByEvents
 			if (linkElement != null)
 			{
 				GlobalStats.LinkCount++;
-				return "https://isir.justice.cz/isir/ueu/" + WebUtility.HtmlDecode(linkElement.Attributes["href"].Value);
-			}
-			return null;
-		}
-
-		public string GetSoud(string spisovaZnacka)
-		{
-			var parts = spisovaZnacka.Split(new[] { '/', ' ' });
-			var content = Client.Load($"https://isir.justice.cz/isir/ueu/vysledek_lustrace.do?bc_vec={parts[1]}&rocnik={parts[2]}aktualnost=AKTUALNI_I_UKONCENA&rowsAtOnce=50");
-			var soudElement = content.DocumentNode.Descendants("span").Where(t => t.Attributes["class"]?.Value == "vysledekLustrace" && t.InnerHtml.Contains("INS")).SingleOrDefault();
-			if (soudElement != null)
-			{
-				//GlobalStats.LinkCount++;
-				return soudElement.InnerText.Trim().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+				return "https://isir.justice.cz/isir/ueu/evidence_upadcu_detail.do?id=" + WebUtility.HtmlDecode(linkElement.Attributes["href"].Value);
 			}
 			return null;
 		}
