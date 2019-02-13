@@ -1,35 +1,32 @@
 ﻿using Nest;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
 
 namespace InsolvencniRejstrik.ByEvents
 {
 	class ElasticConnector
 	{
-		private readonly string[] ElasticIndexNames = new[] { "insolvencnirestrik-dokument", "insolvencnirestrik-osoba2", "insolvencnirestrik-rizeni2" };
+		private readonly string ElasticIndexName = "insolvencnirestrik";
 
 		private static readonly object LockRoot = new object();
-		private Dictionary<string, ElasticClient> Clients = new Dictionary<string, ElasticClient>();
+		private ElasticClient Client;
 
-		public ElasticClient GetESClient(Database db, int timeOut = 60000, int connectionLimit = 80)
+		public ElasticClient GetESClient(int timeOut = 60000, int connectionLimit = 80)
 		{
-			var idxname = ElasticIndexNames[(int)db];
-			var cnnset = $"{idxname}|{timeOut}|{connectionLimit}";
-			if (!Clients.ContainsKey(cnnset))
+			var cnnset = $"{ElasticIndexName}|{timeOut}|{connectionLimit}";
+			if (Client == null)
 			{
 				lock (LockRoot)
 				{
-					if (!Clients.ContainsKey(cnnset))
+					if (Client == null)
 					{
-						var settings = GetElasticSearchConnectionSettings(idxname, timeOut, connectionLimit);
-						var client = new ElasticClient(settings);
-						CreateElasticIndex(db, client);
-						Clients.Add(cnnset, client);
+						var settings = GetElasticSearchConnectionSettings(ElasticIndexName, timeOut, connectionLimit);
+						Client = new ElasticClient(settings);
+						CreateElasticIndex();
 					}
 				}
 			}
-			return Clients[cnnset];
+			return Client;
 		}
 
 		private ConnectionSettings GetElasticSearchConnectionSettings(string indexName, int timeOut = 60000, int? connectionLimit = null)
@@ -73,9 +70,9 @@ namespace InsolvencniRejstrik.ByEvents
 			return ConfigurationManager.AppSettings[value] ?? string.Empty;
 		}
 
-		private void CreateElasticIndex(Database db, ElasticClient client)
+		private void CreateElasticIndex()
 		{
-			var ret = client.IndexExists(client.ConnectionSettings.DefaultIndex);
+			var ret = Client.IndexExists(Client.ConnectionSettings.DefaultIndex);
 			if (!ret.Exists)
 			{
 				var set = new IndexSettings
@@ -98,32 +95,12 @@ namespace InsolvencniRejstrik.ByEvents
 				set.Analysis.TokenFilters.Add("czech_stemmer", new StemmerTokenFilter() { Language = "czech" });
 				var idxSt = new IndexState { Settings = set };
 
-				var res = client
-				   .CreateIndex(client.ConnectionSettings.DefaultIndex, i => i
+				var res = Client
+				   .CreateIndex(Client.ConnectionSettings.DefaultIndex, i => i
 					   .InitializeUsing(idxSt)
-					   .Mappings(m =>
-					   {
-						   switch (db)
-						   {
-							   case Database.Dokument:
-								   return m.Map<Dokument>(map => map.AutoMap().DateDetection(false));
-							   case Database.Osoba:
-								   return m.Map<Osoba>(map => map.AutoMap().DateDetection(false));
-							   case Database.Rizeni:
-								   return m.Map<Rizeni>(map => map.AutoMap().DateDetection(false));
-							   default:
-								   throw new ArgumentOutOfRangeException($"Unknown DB type {db.ToString()}");
-						   }
-					   })
+					   .Mappings(m => m.Map<Rizeni>(map => map.AutoMap().DateDetection(false)))
 				   );
 			}
 		}
-	}
-
-	public enum Database
-	{
-		Dokument = 0,
-		Osoba = 1,
-		Rizeni = 2
 	}
 }

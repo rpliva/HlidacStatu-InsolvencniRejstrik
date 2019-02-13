@@ -15,23 +15,20 @@ namespace InsolvencniRejstrik.ByEvents
 	partial class IsirWsConnector : BaseConnector
 	{
 		private readonly IRepository Repository;
-		private readonly EventsRepository EventsRepository;
+		private readonly IEventsRepository EventsRepository;
 		private readonly IIsirClient IsirClient;
 		private readonly IWsClient WsClient;
-		private readonly bool IgnoreDocuments;
-		private readonly bool OnlyDocuments;
 		private readonly int ToEventId;
 
 
-		public IsirWsConnector(bool noCache, bool ignoreDocuments, bool onlyDocuments, int toEventId)
+		public IsirWsConnector(bool noCache, int toEventId, Stats stats, IRepository repository, IEventsRepository eventRepository)
 		{
-			GlobalStats = new Stats();
-			Repository = new RepositoryCache(new Repository(GlobalStats), CreateNewInsolvencyProceeding, CreateNewPerson);
-			EventsRepository = new EventsRepository();
+			GlobalStats = stats;
+			Repository = repository;
+			EventsRepository = eventRepository;
+
 			IsirClient = noCache ? (IIsirClient)new IsirClient(GlobalStats) : new IsirClientCache(new IsirClient(GlobalStats), GlobalStats);
 			WsClient = noCache ? (IWsClient)new WsClient() : new WsClientCache(new Lazy<IWsClient>(() => new WsClient()));
-			IgnoreDocuments = ignoreDocuments;
-			OnlyDocuments = onlyDocuments;
 			ToEventId = toEventId;
 		}
 
@@ -74,9 +71,9 @@ namespace InsolvencniRejstrik.ByEvents
 						WsResultsQueue.Enqueue(item);
 						lastId = item.Id;
 
-						while (WsResultsQueue.Count > 3_000)
+						while (WsResultsQueue.Count > 5_000)
 						{
-							Thread.Sleep(10_000);
+							Thread.Sleep(1_000);
 						}
 					}
 
@@ -122,15 +119,10 @@ namespace InsolvencniRejstrik.ByEvents
 					{
 						try
 						{
-							var rizeni = Repository.GetInsolvencyProceeding(item.SpisovaZnacka);
+							var rizeni = Repository.GetInsolvencyProceeding(item.SpisovaZnacka, CreateNewInsolvencyProceeding);
 							var lastChanged = rizeni.PosledniZmena;
 
 							ProcessDocument(item, rizeni);
-							if (OnlyDocuments)
-							{
-								EventsRepository.SetLastEventId(item.Id);
-								break;
-							}
 
 							if (!string.IsNullOrEmpty(item.Poznamka))
 							{
@@ -157,12 +149,21 @@ namespace InsolvencniRejstrik.ByEvents
 								switch (item.TypUdalosti)
 								{
 									case "1": // zmena osoby
-										var osoba = ProcessPersonChangedEvent(xdoc, rizeni, item.Id);
-										AddToSubjects(osoba, rizeni, item.DatumZalozeniUdalosti);
+										GlobalStats.OsobaChangedEvent++;
+										var osoba = GetOsoba(xdoc, rizeni, item.Id);
+										if (UpdatePerson(osoba, xdoc.Descendants("osoba").FirstOrDefault()))
+										{
+											rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
+										}
 										break;
 									case "2": // zmena adresy osoby
-										var osobaSAdresou = ProcessAddressChangedEvent(xdoc, rizeni, item.Id);
-										AddToSubjects(osobaSAdresou, rizeni, item.DatumZalozeniUdalosti);
+										GlobalStats.AdresaChangedEvent++;
+										var osoba2 = GetOsoba(xdoc, rizeni, item.Id);
+										var el = xdoc.Descendants("osoba").FirstOrDefault();
+										if (UpdatePerson(osoba2, el) || UpdateAddress(osoba2, el))
+										{
+											rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
+										}
 										break;
 									case "5": // insolvencni navrh
 									case "185": // Vyhlaska o zahajeni insolvencniho rizeni
@@ -212,36 +213,68 @@ namespace InsolvencniRejstrik.ByEvents
 			}
 		}
 
+		private Osoba GetOsoba(XDocument xdoc, Rizeni rizeni, long eventId)
+		{
+			try
+			{
+				var idPuvodce = ParseValue(xdoc, "idOsobyPuvodce");
+				var o = xdoc.Descendants("osoba").FirstOrDefault();
+				var osobaId = ParseValue(o, "idOsoby");
+				var role = ParseValue(o, "druhRoleVRizeni");
+
+				List<Osoba> osoby = null;
+				switch (role)
+				{
+					case "DLUŽNÍK":
+						osoby = rizeni.Dluznici;
+						break;
+					case "VĚŘITEL":
+					case "VĚŘIT-NAVR":
+						osoby = rizeni.Veritele;
+						break;
+					case "SPRÁVCE":
+						osoby = rizeni.Spravci;
+						break;
+					default:
+						throw new ApplicationException($"Unknown role '{role}'");
+				}
+
+				var osoba = osoby.SingleOrDefault(d => d.IdPuvodce == idPuvodce && d.IdOsoby == osobaId);
+				if (osoba == null)
+				{
+					osoba = new Osoba { IdOsoby = osobaId, IdPuvodce = idPuvodce, Role = role };
+					osoby.Add(osoba);
+				}
+				return osoba;
+			}
+			catch (Exception e)
+			{
+				GlobalStats.WriteError(e.Message, eventId);
+				throw;
+			}
+		}
+
 		private void ProcessDocument(WsResult item, Rizeni rizeni)
 		{
-			if (!string.IsNullOrEmpty(item.DokumentUrl) && !IgnoreDocuments)
+			if (!string.IsNullOrEmpty(item.DokumentUrl))
 			{
-				var document = Repository.GetDocument(item.Id.ToString()) ?? new Dokument
+				var document = rizeni.Dokumenty.SingleOrDefault(d => d.Id == item.Id.ToString());
+				if (document == null)
 				{
-					Id = item.Id.ToString(),
-					SpisovaZnacka = item.SpisovaZnacka,
-				};
+					document = new Dokument
+					{
+						Id = item.Id.ToString(),
+					};
+					rizeni.Dokumenty.Add(document);
+				}
 
 				document.Url = item.DokumentUrl;
 				document.DatumVlozeni = item.DatumZalozeniUdalosti;
 				document.Popis = item.PopisUdalosti;
 				document.Oddil = item.Oddil;
 
-				Repository.SetDocument(document);
 				rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
 				GlobalStats.DocumentCount++;
-			}
-		}
-
-		private void AddToSubjects(Osoba osoba, Rizeni rizeni, DateTime lastChanged) {
-			if (osoba.Role != "SPRÁVCE")
-			{
-				var subjekt = new Subjekt { Nazev = osoba.Nazev.ToUpperInvariant(), ICO = osoba.ICO, Rc = osoba.Rc, Role = osoba.Role.Substring(0, 1) };
-				if (rizeni.Subjekty.All(s => s.Rc != osoba.Rc || s.ICO != osoba.ICO))
-				{
-					rizeni.Subjekty.Add(subjekt);
-					rizeni.PosledniZmena = lastChanged;
-				}
 			}
 		}
 
@@ -256,32 +289,7 @@ namespace InsolvencniRejstrik.ByEvents
 		private HashSet<string> FyzickeOsoby = new HashSet<string> { "F", "SPRÁV_INS", "PAT_ZAST", "DAN_PORAD", "U", "SPRÁVCE_KP" };
 		private HashSet<string> PravnickeOsoby = new HashSet<string> { "P", "PODNIKATEL", "OST_OVM", "SPR_ORGAN", "POLICIE", "O", "S", "ADVOKÁT", "EXEKUTOR", "ZNAL_TLUM" };
 
-		private Osoba ProcessPersonChangedEvent(XDocument xdoc, Rizeni rizeni, long eventId)
-		{
-			try
-			{
-				GlobalStats.OsobaChangedEvent++;
-				var idPuvodce = ParseValue(xdoc, "idOsobyPuvodce");
-				var o = xdoc.Descendants("osoba").FirstOrDefault();
-				var osobaId = ParseValue(o, "idOsoby");
-				var key = new OsobaId { IdOsoby = osobaId, IdPuvodce = idPuvodce, SpisovaZnacka = rizeni.SpisovaZnacka };
-				var osoba = Repository.GetPerson(key);
-
-				if (UpdatePerson(osoba, o))
-				{
-					Repository.SetPerson(osoba);
-				}
-
-				return osoba;
-			}
-			catch (Exception e)
-			{
-				GlobalStats.WriteError(e.Message, eventId);
-				throw;
-			}
-		}
-
-		private bool Update<T,U>(T target, Expression<Func<T, U>> item, U value)
+		private bool Update<T, U>(T target, Expression<Func<T, U>> item, U value)
 		{
 			var expr = (MemberExpression)item.Body;
 			var prop = (PropertyInfo)expr.Member;
@@ -298,7 +306,7 @@ namespace InsolvencniRejstrik.ByEvents
 			var changed = false;
 			changed |= Update(person, p => p.Typ, ParseValue(element, "druhOsoby"));
 			changed |= Update(person, p => p.Role, ParseValue(element, "druhRoleVRizeni"));
-			changed |= Update(person, p => p.Nazev, ParseName(element));
+			changed |= Update(person, p => p.PlneJmeno, ParseName(element));
 
 			if (FyzickeOsoby.Contains(person.Typ))
 			{
@@ -326,51 +334,25 @@ namespace InsolvencniRejstrik.ByEvents
 			return changed;
 		}
 
-		private Osoba ProcessAddressChangedEvent(XDocument xdoc, Rizeni rizeni, long eventId)
+		private bool UpdateAddress(Osoba osoba, XElement element)
 		{
-			try
+			var a = element.Descendants("adresa").FirstOrDefault();
+
+			if (a != null)
 			{
-				GlobalStats.AdresaChangedEvent++;
-				var idPuvodce = ParseValue(xdoc, "idOsobyPuvodce");
-				var o = xdoc.Descendants("osoba").FirstOrDefault();
-				var osobaId = ParseValue(o, "idOsoby");
-				var key = new OsobaId { IdOsoby = osobaId, IdPuvodce = idPuvodce, SpisovaZnacka = rizeni.SpisovaZnacka };
-				var osoba = Repository.GetPerson(key);
-
-				var changed = UpdatePerson(osoba, o);
-
-				var a = o.Descendants("adresa").FirstOrDefault();
-
-				if (a != null)
+				var druhAdresy = ParseValue(a, "druhAdresy");
+				if (druhAdresy == "TRVALÁ" || druhAdresy == "SÍDLO FY")
 				{
-					var druhAdresy = ParseValue(a, "druhAdresy");
-					if (druhAdresy == "TRVALÁ" || druhAdresy == "SÍDLO FY")
-					{
-						changed |= Update(osoba, p => p.Mesto, ParseValue(a, "mesto"));
-						changed |= Update(osoba, p => p.Okres, ParseValue(a, "okres"));
-						changed |= Update(osoba, p => p.Zeme, ParseValue(a, "zeme"));
-						changed |= Update(osoba, p => p.Psc, ParseValue(a, "psc"));
-					}
+					var changed = Update(osoba, p => p.Mesto, ParseValue(a, "mesto"));
+					changed |= Update(osoba, p => p.Okres, ParseValue(a, "okres"));
+					changed |= Update(osoba, p => p.Zeme, ParseValue(a, "zeme"));
+					changed |= Update(osoba, p => p.Psc, ParseValue(a, "psc"));
+
+					return changed;
 				}
-
-				if (changed)
-				{
-					Repository.SetPerson(osoba);
-				}
-
-				return osoba;
 			}
-			catch (Exception e)
-			{
-				GlobalStats.WriteError(e.Message, eventId);
-				throw;
-			}
-		}
 
-		private Osoba CreateNewPerson(OsobaId id)
-		{
-			GlobalStats.NewOsobaCount++;
-			return new Osoba { IdPuvodce = id.IdPuvodce, IdOsoby = id.IdOsoby, Id = id.GetId(), SpisovaZnacka = id.SpisovaZnacka };
+			return false;
 		}
 
 		private string ParseName(XElement o)
@@ -414,8 +396,6 @@ namespace InsolvencniRejstrik.ByEvents
 				Console.WriteLine($"   Vlakno zprav: {MessageProcessorTask.Status}");
 				Console.WriteLine($"   Vlakno linku: {LinkProcessorTask.Status}");
 				Console.WriteLine();
-				Console.WriteLine($"   Data osoby: R{GlobalStats.PersonGet}/W{GlobalStats.PersonSet}");
-				Console.WriteLine($"   Data dokumenty: R{GlobalStats.DocumentGet}/W{GlobalStats.DocumentSet}");
 				Console.WriteLine($"   Data rizeni: R{GlobalStats.InsolvencyProceedingGet}/W{GlobalStats.InsolvencyProceedingSet}");
 				Console.WriteLine();
 				Console.WriteLine($"   Errors (total: {GlobalStats.TotalErrors}):");

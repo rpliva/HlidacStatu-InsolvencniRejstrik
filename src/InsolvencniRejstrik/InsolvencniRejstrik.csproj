@@ -104,16 +104,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseConnector.cs" />
-    <Compile Include="ByEvents\Dto\Dokument.cs" />
     <Compile Include="ByEvents\Isir\IIsirClient.cs" />
     <Compile Include="ByEvents\Persistence\ElasticConnector.cs" />
     <Compile Include="ByEvents\Persistence\EventsRepository.cs" />
+    <Compile Include="ByEvents\Persistence\FileRepository.cs" />
+    <Compile Include="ByEvents\Persistence\IEventsRepository.cs" />
     <Compile Include="ByEvents\Persistence\IRepository.cs" />
     <Compile Include="ByEvents\Isir\IsirClient.cs" />
     <Compile Include="ByEvents\Isir\IsirClientCache.cs" />
     <Compile Include="ByEvents\Persistence\RepositoryCache.cs" />
     <Compile Include="ByEvents\Ws\IWsClient.cs" />
-    <Compile Include="ByEvents\Dto\Osoba.cs" />
     <Compile Include="ByEvents\Persistence\Repository.cs" />
     <Compile Include="ByEvents\Dto\Rizeni.cs" />
     <Compile Include="ByEvents\Stats.cs" />

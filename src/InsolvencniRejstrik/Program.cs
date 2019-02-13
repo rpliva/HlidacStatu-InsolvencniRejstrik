@@ -1,9 +1,9 @@
 ﻿﻿using InsolvencniRejstrik.ByEvents;
 using InsolvencniRejstrik.FromSearch;
 using NDesk.Options;
-using HlidacStatu.Api.Dataset.Connector;
-using HtmlAgilityPack;
 using System;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace InsolvencniRejstrik
 {
@@ -22,22 +22,20 @@ namespace InsolvencniRejstrik
 			var noCache = false;
 			var initCache = false;
 			var help = false;
-			var createIndexes = false;
-			var ignoreDocuments = false;
-			var onlyDocuments = false;
 			var toEventId = -1;
+			var toFiles = false;
+			var fromFiles = false;
 
 			var options = new OptionSet() {
-				{ "create-indexes", "vytvori indexy v elastiku", v => createIndexes = true },
 				{ "s|search", "definuje rezim dle vyhledavani", v => search = true },
 				{ "apitoken=", "ApiToken pro pristup k datovym sadam (povinny, pouze pro rezim vyhledavani)", v => apiToken = v },
 				{ "date=", "datum zahajeni hledani (nepovinny, default 1.1.2008, pouze pro rezim vyhledavani)", (DateTime v) => date = v },
 				{ "e|events", "definuje rezim dle udalosti", v => events = true },
 				{ "no-cache", "vypina ukladani event do cache a jejich nasledne pouziti", v => noCache = true },
-				{ "ignore-documents", "vypina ukladani dokumentu do databaze", v => ignoreDocuments = true },
-				{ "only-documents", "do databaze budou ukladany pouze dokumenty", v => onlyDocuments = true },
 				{ "to-event-id=", "nastavuje id udalosti, po ktere dojde k ukonceni zpracovani", v => toEventId = Convert.ToInt32(v) },
 				{ "init-link-cache", "nacte seznam vsech rizeni a linku na jejich detail a ulozi je do souboru, ktery je pouzit pri naplneni cache linku na detail rizeni", v => initCache = true },
+				{ "to-files", "uklada rizeni do souboru namisto do databaze", v => toFiles = true},
+				{ "from-files", "cte data ze souboru a uklada je do databaze", v => fromFiles = true},
 				{ "h|?|help", "zobrazi napovedu", v => help = true },
 			};
 			options.Parse(args);
@@ -45,13 +43,6 @@ namespace InsolvencniRejstrik
 			if (help)
 			{
 				PrintHelp(options);
-			}
-			else if (createIndexes)
-			{
-				var es = new ElasticConnector();
-				es.GetESClient(Database.Dokument);
-				es.GetESClient(Database.Osoba);
-				es.GetESClient(Database.Rizeni);
 			}
 			else if (initCache)
 			{
@@ -65,8 +56,50 @@ namespace InsolvencniRejstrik
 			}
 			else if (events)
 			{
-				var connector = new IsirWsConnector(noCache, ignoreDocuments, onlyDocuments, toEventId);
+				var stats = new Stats();
+				IRepository repository = null;
+				IEventsRepository eventsRepository = null;
+
+				if (toFiles)
+				{
+					repository = new FileRepository();
+					eventsRepository = new WriteOnlyEventsRepository();
+				}
+				else
+				{
+					repository = new RepositoryCache(new Repository(stats));
+					eventsRepository = new EventsRepository();
+				}
+
+				var connector = new IsirWsConnector(noCache, toEventId, stats, repository, eventsRepository);
 				connector.Handle();
+			}
+			else if (fromFiles)
+			{
+				var stats = new Stats();
+				var repository = new Repository(stats);
+
+				foreach (var dir in Directory.EnumerateDirectories("data"))
+				{
+					Console.WriteLine($"Zpracovava se slozka {dir} ...");
+					Console.WriteLine();
+					var count = 0;
+
+					foreach (var file in Directory.EnumerateFiles(dir))
+					{
+						var rizeni = JsonConvert.DeserializeObject<ByEvents.Rizeni>(File.ReadAllText(file));
+						repository.SetInsolvencyProceeding(rizeni);
+						if (++count % 100 == 0)
+						{
+							Console.CursorTop = Console.CursorTop - 1;
+							Console.WriteLine($"  {count} rizeni ulozeno");
+						}
+					}
+
+					Console.CursorTop = Console.CursorTop - 1;
+					Console.WriteLine($"  {count} rizeni ulozeno");
+					Console.WriteLine();
+				}
 			}
 			else
 			{

@@ -1,12 +1,10 @@
-﻿namespace InsolvencniRejstrik.ByEvents
+﻿using System;
+
+namespace InsolvencniRejstrik.ByEvents
 {
 	interface IRepository
 	{
-		Dokument GetDocument(string id);
-		Osoba GetPerson(OsobaId id);
-		Rizeni GetInsolvencyProceeding(string spisovaZnacka);
-		void SetDocument(Dokument item);
-		void SetPerson(Osoba item);
+		Rizeni GetInsolvencyProceeding(string spisovaZnacka, Func<string, Rizeni> createNewInsolvencyProceeding);
 		void SetInsolvencyProceeding(Rizeni item);
 	}
 }

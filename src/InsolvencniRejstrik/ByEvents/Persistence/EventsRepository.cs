@@ -3,7 +3,7 @@ using System.IO;
 
 namespace InsolvencniRejstrik.ByEvents
 {
-	class EventsRepository
+	class EventsRepository : IEventsRepository
 	{
 		private const string LastIdFile = "last_event_id.dat";
 		private const long DefaultEventId = -1;
@@ -25,6 +25,27 @@ namespace InsolvencniRejstrik.ByEvents
 		{
 			// just optimalization
 			if (++Count % 1000 == 0)
+			{
+				File.WriteAllText(LastIdFile, id.ToString());
+			}
+		}
+	}
+
+	class WriteOnlyEventsRepository : IEventsRepository
+	{
+		private const string LastIdFile = "last_event_id.dat";
+		private const long DefaultEventId = -1;
+
+		public long GetLastEventId()
+		{
+			return DefaultEventId;
+		}
+
+		private int Count = 0;
+		public void SetLastEventId(long id)
+		{
+			// just optimalization
+			if (++Count % 10000 == 0)
 			{
 				File.WriteAllText(LastIdFile, id.ToString());
 			}

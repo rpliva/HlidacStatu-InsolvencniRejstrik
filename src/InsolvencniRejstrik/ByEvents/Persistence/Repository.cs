@@ -1,4 +1,5 @@
 ﻿using Elasticsearch.Net;
+using System;
 using System.Linq;
 
 namespace InsolvencniRejstrik.ByEvents
@@ -14,62 +15,9 @@ namespace InsolvencniRejstrik.ByEvents
 			Stats = stats;
 			Elastic = new ElasticConnector();
 		}
-
-		public Osoba GetPerson(OsobaId id)
+		public Rizeni GetInsolvencyProceeding(string spisovaZnacka, Func<string, Rizeni> createNewInsolvencyProceeding)
 		{
-			var res = Elastic.GetESClient(Database.Osoba)
-				.Search<Osoba>(s => s
-					.Size(1) //zrus, pokud ma vratit vice zaznamu
-					.Query(q => q.Term(t => t.Field(f => f.Id).Value(id.GetId())))
-				);
-			if (res.IsValid)
-			{
-				Stats.PersonGet++;
-				return res.Hits.FirstOrDefault()?.Source;
-			}
-			throw new ElasticsearchClientException(res.ServerError?.ToString());
-		}
-
-		public void SetPerson(Osoba item)
-		{
-			var res = Elastic.GetESClient(Database.Osoba).Index(item, o => o.Id(item.Id.ToString()));
-			if (!res.IsValid)
-			{
-				throw new ElasticsearchClientException(res.ServerError?.ToString());
-			}
-			Stats.PersonSet++;
-		}
-
-		public Dokument GetDocument(string id)
-		{
-			var res = Elastic.GetESClient(Database.Dokument)
-				.Search<Dokument>(s => s
-					.Size(1) //zrus, pokud ma vratit vice zaznamu
-					.Query(q => q
-					.Term(t => t.Field(f => f.Id).Value(id))
-					)
-				);
-			if (res.IsValid)
-			{
-				Stats.DocumentGet++;
-				return res.Hits.FirstOrDefault()?.Source;
-			}
-			throw new ElasticsearchClientException(res.ServerError?.ToString());
-		}
-
-		public void SetDocument(Dokument item)
-		{
-			var res = Elastic.GetESClient(Database.Dokument).Index(item, o => o.Id(item.Id.ToString()));
-			if (!res.IsValid)
-			{
-				throw new ElasticsearchClientException(res.ServerError?.ToString());
-			}
-			Stats.DocumentSet++;
-		}
-
-		public Rizeni GetInsolvencyProceeding(string spisovaZnacka)
-		{
-			var res = Elastic.GetESClient(Database.Rizeni)
+			var res = Elastic.GetESClient()
 				.Search<Rizeni>(s => s
 					.Size(1) //zrus, pokud ma vratit vice zaznamu
 					.Query(q => q
@@ -86,7 +34,7 @@ namespace InsolvencniRejstrik.ByEvents
 
 		public void SetInsolvencyProceeding(Rizeni item)
 		{
-			var res = Elastic.GetESClient(Database.Rizeni).Index(item, o => o.Id(item.SpisovaZnacka.ToString())); //druhy parametr musi byt pole, ktere je unikatni
+			var res = Elastic.GetESClient().Index(item, o => o.Id(item.SpisovaZnacka.ToString())); //druhy parametr musi byt pole, ktere je unikatni
 			if (!res.IsValid)
 			{
 				throw new ElasticsearchClientException(res.ServerError?.ToString());

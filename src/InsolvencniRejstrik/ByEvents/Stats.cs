@@ -21,10 +21,6 @@ namespace InsolvencniRejstrik.ByEvents
 		public long LastEventId { get; set; }
 		public DateTime LastEventTime { get; set; }
 		public DateTime Start { get; }
-		public int PersonGet { get; set; }
-		public int PersonSet { get; set; }
-		public int DocumentGet { get; set; }
-		public int DocumentSet { get; set; }
 		public int InsolvencyProceedingGet { get; set; }
 		public int InsolvencyProceedingSet { get; set; }
 
