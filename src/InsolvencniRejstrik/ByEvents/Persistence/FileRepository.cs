@@ -11,22 +11,57 @@ namespace InsolvencniRejstrik.ByEvents
 
 		public Rizeni GetInsolvencyProceeding(string spisovaZnacka, Func<string, Rizeni> createNewInsolvencyProceeding)
 		{
-			return RizeniCache.GetOrAdd(spisovaZnacka, createNewInsolvencyProceeding(spisovaZnacka));
+			Rizeni rizeni = null;
+			if (RizeniCache.TryGetValue(spisovaZnacka, out rizeni) && rizeni != null)
+			{
+				return rizeni;
+			}
+
+			var noveRizeni = createNewInsolvencyProceeding(spisovaZnacka);
+			var filePath = GetFilePath(noveRizeni);
+
+			if (File.Exists(filePath.FullPath))
+			{
+				rizeni = JsonConvert.DeserializeObject<Rizeni>(File.ReadAllText(filePath.FullPath));
+				if (!RizeniCache.TryAdd(spisovaZnacka, rizeni))
+				{
+					throw new ApplicationException($"Rizeni {spisovaZnacka} already exists in cache");
+				}
+				return rizeni;
+			}
+
+			if (!RizeniCache.TryAdd(spisovaZnacka, noveRizeni))
+			{
+				throw new ApplicationException($"New rizeni {spisovaZnacka} already exists in cache");
+			}
+			return noveRizeni;
 		}
 
 		public void SetInsolvencyProceeding(Rizeni item)
 		{
-			var dir = $@"data\{item.SpisovaZnacka.Split('/')[1]}";
+			var filePath = GetFilePath(item);
 
 			try
 			{
-				File.WriteAllText($@"{dir}\{item.UrlId()}.json", JsonConvert.SerializeObject(item, Formatting.Indented));
+				File.WriteAllText(filePath.FullPath, JsonConvert.SerializeObject(item, Formatting.Indented));
 			}
 			catch (DirectoryNotFoundException)
 			{
-				Directory.CreateDirectory(dir);
-				File.WriteAllText($@"{dir}\{item.UrlId()}.json", JsonConvert.SerializeObject(item, Formatting.Indented));
+				Directory.CreateDirectory(filePath.Dir);
+				File.WriteAllText(filePath.FullPath, JsonConvert.SerializeObject(item, Formatting.Indented));
 			}
+		}
+
+		private FilePath GetFilePath(Rizeni item)
+		{
+			var dir = $@"data\{item.SpisovaZnacka.Split('/')[1]}";
+			return new FilePath { FullPath = $@"{dir}\{item.UrlId()}.json", Dir = dir };
+		}
+
+		private class FilePath
+		{
+			public string Dir { get; set; }
+			public string FullPath { get; set; }
 		}
 	}
 }

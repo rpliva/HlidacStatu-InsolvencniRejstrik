@@ -63,7 +63,8 @@ namespace InsolvencniRejstrik
 				if (toFiles)
 				{
 					repository = new FileRepository();
-					eventsRepository = new WriteOnlyEventsRepository();
+					eventsRepository = new EventsRepository();
+
 				}
 				else
 				{
