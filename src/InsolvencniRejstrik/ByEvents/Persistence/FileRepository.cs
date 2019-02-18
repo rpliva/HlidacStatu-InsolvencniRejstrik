@@ -8,11 +8,17 @@ namespace InsolvencniRejstrik.ByEvents
 	public class FileRepository : IRepository
 	{
 		private ConcurrentDictionary<string, Rizeni> RizeniCache = new ConcurrentDictionary<string, Rizeni>();
+		private bool IgnoreCache;
+
+		public FileRepository(bool ignoreCache)
+		{
+			IgnoreCache = ignoreCache;
+		}
 
 		public Rizeni GetInsolvencyProceeding(string spisovaZnacka, Func<string, Rizeni> createNewInsolvencyProceeding)
 		{
 			Rizeni rizeni = null;
-			if (RizeniCache.TryGetValue(spisovaZnacka, out rizeni) && rizeni != null)
+			if (!IgnoreCache && RizeniCache.TryGetValue(spisovaZnacka, out rizeni) && rizeni != null)
 			{
 				return rizeni;
 			}
@@ -23,14 +29,14 @@ namespace InsolvencniRejstrik.ByEvents
 			if (File.Exists(filePath.FullPath))
 			{
 				rizeni = JsonConvert.DeserializeObject<Rizeni>(File.ReadAllText(filePath.FullPath));
-				if (!RizeniCache.TryAdd(spisovaZnacka, rizeni))
+				if (!IgnoreCache && !RizeniCache.TryAdd(spisovaZnacka, rizeni))
 				{
 					throw new ApplicationException($"Rizeni {spisovaZnacka} already exists in cache");
 				}
 				return rizeni;
 			}
 
-			if (!RizeniCache.TryAdd(spisovaZnacka, noveRizeni))
+			if (!IgnoreCache && !RizeniCache.TryAdd(spisovaZnacka, noveRizeni))
 			{
 				throw new ApplicationException($"New rizeni {spisovaZnacka} already exists in cache");
 			}
