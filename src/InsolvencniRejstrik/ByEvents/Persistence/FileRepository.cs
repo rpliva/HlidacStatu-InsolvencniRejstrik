@@ -1,46 +1,19 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Concurrent;
 using System.IO;
 
 namespace InsolvencniRejstrik.ByEvents
 {
 	public class FileRepository : IRepository
 	{
-		private ConcurrentDictionary<string, Rizeni> RizeniCache = new ConcurrentDictionary<string, Rizeni>();
-		private bool IgnoreCache;
-
-		public FileRepository(bool ignoreCache)
-		{
-			IgnoreCache = ignoreCache;
-		}
-
 		public Rizeni GetInsolvencyProceeding(string spisovaZnacka, Func<string, Rizeni> createNewInsolvencyProceeding)
 		{
-			Rizeni rizeni = null;
-			if (!IgnoreCache && RizeniCache.TryGetValue(spisovaZnacka, out rizeni) && rizeni != null)
-			{
-				return rizeni;
-			}
-
 			var noveRizeni = createNewInsolvencyProceeding(spisovaZnacka);
 			var filePath = GetFilePath(noveRizeni);
 
-			if (File.Exists(filePath.FullPath))
-			{
-				rizeni = JsonConvert.DeserializeObject<Rizeni>(File.ReadAllText(filePath.FullPath));
-				if (!IgnoreCache && !RizeniCache.TryAdd(spisovaZnacka, rizeni))
-				{
-					throw new ApplicationException($"Rizeni {spisovaZnacka} already exists in cache");
-				}
-				return rizeni;
-			}
-
-			if (!IgnoreCache && !RizeniCache.TryAdd(spisovaZnacka, noveRizeni))
-			{
-				throw new ApplicationException($"New rizeni {spisovaZnacka} already exists in cache");
-			}
-			return noveRizeni;
+			return File.Exists(filePath.FullPath)
+				? JsonConvert.DeserializeObject<Rizeni>(File.ReadAllText(filePath.FullPath))
+				: noveRizeni;
 		}
 
 		public void SetInsolvencyProceeding(Rizeni item)

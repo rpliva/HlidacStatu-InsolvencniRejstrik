@@ -286,7 +286,7 @@ namespace InsolvencniRejstrik.ByEvents
 			return r;
 		}
 
-		private HashSet<string> FyzickeOsoby = new HashSet<string> { "F", "SPRÁV_INS", "PAT_ZAST", "DAN_PORAD", "U", "SPRÁVCE_KP" };
+		private HashSet<string> FyzickeOsoby = new HashSet<string> { "F", "SPRÁV_INS", "PAT_ZAST", "DAN_PORAD", "U", "SPRÁVCE_KP", "Z" };
 		private HashSet<string> PravnickeOsoby = new HashSet<string> { "P", "PODNIKATEL", "OST_OVM", "SPR_ORGAN", "POLICIE", "O", "S", "ADVOKÁT", "EXEKUTOR", "ZNAL_TLUM" };
 
 		private bool Update<T, U>(T target, Expression<Func<T, U>> item, U value)
