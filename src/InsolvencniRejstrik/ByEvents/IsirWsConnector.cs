@@ -140,7 +140,7 @@ namespace InsolvencniRejstrik.ByEvents
 								}
 
 								var datumVyskrtnuti = ParseValue(xdoc, "datumVyskrtnuti");
-								if (!string.IsNullOrEmpty(datumVyskrtnuti))
+								if (!rizeni.Vyskrtnuto.HasValue && !string.IsNullOrEmpty(datumVyskrtnuti))
 								{
 									rizeni.Vyskrtnuto = DateTime.Parse(datumVyskrtnuti);
 									rizeni.PosledniZmena = item.DatumZalozeniUdalosti;
@@ -149,6 +149,7 @@ namespace InsolvencniRejstrik.ByEvents
 								switch (item.TypUdalosti)
 								{
 									case "1": // zmena osoby
+									case "625": // Zasilani udaju o zmene osoby veritele v prihlasce
 										GlobalStats.OsobaChangedEvent++;
 										var osoba = GetOsoba(xdoc, rizeni, item.Id);
 										if (UpdatePerson(osoba, xdoc.Descendants("osoba").FirstOrDefault()))
