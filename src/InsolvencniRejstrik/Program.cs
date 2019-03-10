@@ -25,6 +25,7 @@ namespace InsolvencniRejstrik
 			var toEventId = -1;
 			var toFiles = false;
 			var fromFiles = false;
+			var only625fix = false;
 
 			var options = new OptionSet() {
 				{ "s|search", "definuje rezim dle vyhledavani", v => search = true },
@@ -36,6 +37,7 @@ namespace InsolvencniRejstrik
 				{ "init-link-cache", "nacte seznam vsech rizeni a linku na jejich detail a ulozi je do souboru, ktery je pouzit pri naplneni cache linku na detail rizeni", v => initCache = true },
 				{ "to-files", "uklada rizeni do souboru namisto do databaze", v => toFiles = true},
 				{ "from-files", "cte data ze souboru a uklada je do databaze", v => fromFiles = true},
+				{ "625-fix", "oprava udalosti 625", v => only625fix = true},
 				{ "h|?|help", "zobrazi napovedu", v => help = true },
 			};
 			options.Parse(args);
@@ -71,7 +73,7 @@ namespace InsolvencniRejstrik
 					eventsRepository = new EventsRepository();
 				}
 
-				var connector = new IsirWsConnector(noCache, toEventId, stats, repository, eventsRepository);
+				var connector = new IsirWsConnector(noCache, toEventId, stats, repository, eventsRepository, only625fix);
 				connector.Handle();
 			}
 			else if (fromFiles)

@@ -19,13 +19,16 @@ namespace InsolvencniRejstrik.ByEvents
 		private readonly IIsirClient IsirClient;
 		private readonly IWsClient WsClient;
 		private readonly int ToEventId;
+		private readonly bool Only625Fix;
 
 
-		public IsirWsConnector(bool noCache, int toEventId, Stats stats, IRepository repository, IEventsRepository eventRepository)
+		public IsirWsConnector(bool noCache, int toEventId, Stats stats, IRepository repository, IEventsRepository eventRepository, bool only625fix)
 		{
 			GlobalStats = stats;
 			Repository = repository;
 			EventsRepository = eventRepository;
+
+			Only625Fix = only625fix;
 
 			IsirClient = noCache ? (IIsirClient)new IsirClient(GlobalStats) : new IsirClientCache(new IsirClient(GlobalStats), GlobalStats);
 			WsClient = noCache ? (IWsClient)new WsClient() : new WsClientCache(new Lazy<IWsClient>(() => new WsClient()));
@@ -66,6 +69,11 @@ namespace InsolvencniRejstrik.ByEvents
 						if (ToEventId > 0 && item.Id > ToEventId)
 						{
 							return;
+						}
+
+						if (Only625Fix && item.TypUdalosti != "625")
+						{
+							continue;
 						}
 
 						WsResultsQueue.Enqueue(item);
