@@ -4,6 +4,7 @@ using NDesk.Options;
 using System;
 using System.IO;
 using Newtonsoft.Json;
+using InsolvencniRejstrik.Fixes;
 
 namespace InsolvencniRejstrik
 {
@@ -73,7 +74,7 @@ namespace InsolvencniRejstrik
 					eventsRepository = new EventsRepository();
 				}
 
-				var connector = new IsirWsConnector(noCache, toEventId, stats, repository, eventsRepository, only625fix);
+				var connector = new IsirWsConnector(noCache, toEventId, stats, repository, eventsRepository);
 				connector.Handle();
 			}
 			else if (fromFiles)
@@ -102,6 +103,10 @@ namespace InsolvencniRejstrik
 					Console.WriteLine($"  {count} rizeni ulozeno");
 					Console.WriteLine();
 				}
+			}
+			else if (only625fix)
+			{
+				new Event625(new ElasticConnector()).Execute();
 			}
 			else
 			{

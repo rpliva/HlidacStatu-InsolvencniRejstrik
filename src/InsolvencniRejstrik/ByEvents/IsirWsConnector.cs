@@ -19,16 +19,13 @@ namespace InsolvencniRejstrik.ByEvents
 		private readonly IIsirClient IsirClient;
 		private readonly IWsClient WsClient;
 		private readonly int ToEventId;
-		private readonly bool Only625Fix;
 
 
-		public IsirWsConnector(bool noCache, int toEventId, Stats stats, IRepository repository, IEventsRepository eventRepository, bool only625fix)
+		public IsirWsConnector(bool noCache, int toEventId, Stats stats, IRepository repository, IEventsRepository eventRepository)
 		{
 			GlobalStats = stats;
 			Repository = repository;
 			EventsRepository = eventRepository;
-
-			Only625Fix = only625fix;
 
 			IsirClient = noCache ? (IIsirClient)new IsirClient(GlobalStats) : new IsirClientCache(new IsirClient(GlobalStats), GlobalStats);
 			WsClient = noCache ? (IWsClient)new WsClient() : new WsClientCache(new Lazy<IWsClient>(() => new WsClient()));
@@ -69,11 +66,6 @@ namespace InsolvencniRejstrik.ByEvents
 						if (ToEventId > 0 && item.Id > ToEventId)
 						{
 							return;
-						}
-
-						if (Only625Fix && item.TypUdalosti != "625")
-						{
-							continue;
 						}
 
 						WsResultsQueue.Enqueue(item);
@@ -295,10 +287,10 @@ namespace InsolvencniRejstrik.ByEvents
 			return r;
 		}
 
-		private HashSet<string> FyzickeOsoby = new HashSet<string> { "F", "SPRÁV_INS", "PAT_ZAST", "DAN_PORAD", "U", "SPRÁVCE_KP", "Z" };
-		private HashSet<string> PravnickeOsoby = new HashSet<string> { "P", "PODNIKATEL", "OST_OVM", "SPR_ORGAN", "POLICIE", "O", "S", "ADVOKÁT", "EXEKUTOR", "ZNAL_TLUM" };
+		private static HashSet<string> FyzickeOsoby = new HashSet<string> { "F", "SPRÁV_INS", "PAT_ZAST", "DAN_PORAD", "U", "SPRÁVCE_KP", "Z" };
+		private static HashSet<string> PravnickeOsoby = new HashSet<string> { "P", "PODNIKATEL", "OST_OVM", "SPR_ORGAN", "POLICIE", "O", "S", "ADVOKÁT", "EXEKUTOR", "ZNAL_TLUM" };
 
-		private bool Update<T, U>(T target, Expression<Func<T, U>> item, U value)
+		private static bool Update<T, U>(T target, Expression<Func<T, U>> item, U value)
 		{
 			var expr = (MemberExpression)item.Body;
 			var prop = (PropertyInfo)expr.Member;
@@ -310,7 +302,7 @@ namespace InsolvencniRejstrik.ByEvents
 			return false;
 		}
 
-		private bool UpdatePerson(Osoba person, XElement element)
+		internal static bool UpdatePerson(Osoba person, XElement element)
 		{
 			var changed = false;
 			changed |= Update(person, p => p.Typ, ParseValue(element, "druhOsoby"));
@@ -364,7 +356,7 @@ namespace InsolvencniRejstrik.ByEvents
 			return false;
 		}
 
-		private string ParseName(XElement o)
+		private static string ParseName(XElement o)
 		{
 			return string.Join(" ", new[] {
 											ParseValue(o, "titulPred"),
@@ -416,12 +408,12 @@ namespace InsolvencniRejstrik.ByEvents
 			}
 		}
 
-		private string ParseValue(XElement xel, string element)
+		internal static string ParseValue(XElement xel, string element)
 		{
 			return xel?.Element(XName.Get(element))?.Value ?? "";
 		}
 
-		private string ParseValue(XDocument xdoc, string element)
+		internal static string ParseValue(XDocument xdoc, string element)
 		{
 			return xdoc.Descendants(element).FirstOrDefault()?.Value ?? "";
 		}

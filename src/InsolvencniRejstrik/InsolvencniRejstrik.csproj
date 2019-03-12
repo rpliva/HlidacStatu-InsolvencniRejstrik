@@ -130,6 +130,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Reference.svcmap</DependentUpon>
     </Compile>
+    <Compile Include="Fixes\Event625.cs" />
     <Compile Include="FromSearch\Rizeni.cs" />
     <Compile Include="FromSearch\SearchConnector.cs" />
     <Compile Include="FromSearch\SenatniZnacka.cs" />

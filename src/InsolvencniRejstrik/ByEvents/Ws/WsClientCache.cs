@@ -9,7 +9,7 @@ namespace InsolvencniRejstrik.ByEvents
 	{
 
 		private readonly Lazy<IWsClient> UnderlyingClient;
-		private const string CacheFile = "ws_client_cache.csv";
+		public const string CacheFile = "ws_client_cache.csv";
 
 		public WsClientCache(Lazy<IWsClient> underlyingClient)
 		{
