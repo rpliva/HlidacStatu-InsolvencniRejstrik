@@ -1,10 +1,9 @@
-﻿using Elasticsearch.Net;
-using InsolvencniRejstrik.ByEvents;
+﻿using InsolvencniRejstrik.ByEvents;
 using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
-using Nest;
+//using Devmasters.Net.Web;
 
 namespace InsolvencniRejstrik.Fixes
 {
@@ -108,33 +107,33 @@ namespace InsolvencniRejstrik.Fixes
 
 		private void SaveRizeni(Rizeni rizeni)
 		{
-			//var esUrl = Connector.GetESClient().ConnectionSettings.ConnectionPool.Nodes.First().Uri.ToString();
-			//esUrl += $"insolvencnirestrik/rizeni/{System.Net.WebUtility.UrlEncode(rizeni.SpisovaZnacka)}/_update";
-			//try
-			//{
-			//	using (Devmasters.Net.Web.URLContent url = new Devmasters.Net.Web.URLContent(esUrl.ToString()))
-			//	{
+			var esUrl = Connector.GetESClient().ConnectionSettings.ConnectionPool.Nodes.First().Uri.ToString();
+			esUrl += $"insolvencnirestrik/rizeni/{System.Net.WebUtility.UrlEncode(rizeni.SpisovaZnacka)}/_update";
+			try
+			{
+				using (var url = new Devmasters.Net.Web.URLContent(esUrl.ToString()))
+				{
 
-			//		url.Method = Devmasters.Net.Web.MethodEnum.POST;
-			//		url.Tries = 3;
-			//		url.TimeInMsBetweenTries = 500;
+					url.Method = Devmasters.Net.Web.MethodEnum.POST;
+					url.Tries = 3;
+					url.TimeInMsBetweenTries = 500;
 
-			//		var postContent = "{\"doc\" : {\"veritele\" : " +
-			//			Newtonsoft.Json.JsonConvert.SerializeObject(rizeni.Veritele)
-			//			+ "}}";
-			//		url.RequestParams.RawContent = postContent;
-			//		var esres = url.GetContent();
-			//	}
-			//}
-			//catch (Devmasters.Net.Web.UrlContentException e)
-			//{
-			//	Console.WriteLine($"Rizeni {rizeni.SpisovaZnacka} - chyba ukladani");
+					var postContent = "{\"doc\" : {\"veritele\" : " +
+						Newtonsoft.Json.JsonConvert.SerializeObject(rizeni.Veritele)
+						+ "}}";
+					url.RequestParams.RawContent = postContent;
+					var esres = url.GetContent();
+				}
+			}
+			catch (Devmasters.Net.Web.UrlContentException)
+			{
+				Console.WriteLine($"Rizeni {rizeni.SpisovaZnacka} - chyba ukladani");
 
-			//}
-			//catch (Exception e)
-			//{
-			//	Console.WriteLine($"Rizeni {rizeni.SpisovaZnacka} - chyba ukladani " + e.ToString());
-			//}
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine($"Rizeni {rizeni.SpisovaZnacka} - chyba ukladani " + e.ToString());
+			}
 		}
 
 		private Osoba ParseOsoba(XDocument doc)
