@@ -21,27 +21,61 @@ namespace InsolvencniRejstrik.Fixes
 			Connector = connector;
 		}
 
-		public void Execute()
+		public void Execute(int skipLines)
 		{
 			Console.WriteLine("Oprava zpracovani udalosti typu 625");
+			if (skipLines > 0)
+			{
+				Console.WriteLine($"{skipLines} radek bude preskoceno");
+			}
 			Console.WriteLine();
 			Console.WriteLine();
 
 			if (File.Exists(WsClientCache.CacheFile))
 			{
-				foreach (var item in File.ReadLines(WsClientCache.CacheFile).Select(l => WsResult.From(l)))
+				foreach (var line in File.ReadLines(WsClientCache.CacheFile))
 				{
-					Lines++;
-					if (item.TypUdalosti == "625")
+					try
 					{
-						FixingEvents++;
-						ProcessEvent(item);
-					}
+						var item = WsResult.From(line);
+						Lines++;
+						if (Lines < skipLines) continue;
 
-					if (Lines % 10000 == 0)
+						if (item.TypUdalosti == "625")
+						{
+							FixingEvents++;
+							ProcessEvent(item);
+						}
+
+						if (Lines % 10000 == 0)
+						{
+							Console.CursorTop = Console.CursorTop - 1;
+							Console.WriteLine($"Precteno {Lines} radku z toho {FixingEvents} opravovanych udalosti a pridano {Added} veritelu (id udalosti: {item.Id})");
+						}
+					}
+					catch (UnknownPersonException e)
 					{
-						Console.CursorTop = Console.CursorTop - 1;
-						Console.WriteLine($"Precteno {Lines} radku z toho {FixingEvents} opravovanych udalosti a pridano {Added} veritelu");
+						using (var stream = File.AppendText("unknown-person-type.log"))
+						{
+							stream.WriteLine(line);
+							stream.Flush();
+						}
+						Console.WriteLine();
+						Console.WriteLine($"ERROR: {e.Message}");
+						Console.WriteLine();
+						Console.WriteLine();
+					}
+					catch (UnknownRoleException e)
+					{
+						using (var stream = File.AppendText("unknown-role-type.log"))
+						{
+							stream.WriteLine(line);
+							stream.Flush();
+						}
+						Console.WriteLine();
+						Console.WriteLine($"ERROR: {e.Message}");
+						Console.WriteLine();
+						Console.WriteLine();
 					}
 				}
 			}
@@ -74,7 +108,33 @@ namespace InsolvencniRejstrik.Fixes
 
 		private void SaveRizeni(Rizeni rizeni)
 		{
-			//throw new NotImplementedException();
+			//var esUrl = Connector.GetESClient().ConnectionSettings.ConnectionPool.Nodes.First().Uri.ToString();
+			//esUrl += $"insolvencnirestrik/rizeni/{System.Net.WebUtility.UrlEncode(rizeni.SpisovaZnacka)}/_update";
+			//try
+			//{
+			//	using (Devmasters.Net.Web.URLContent url = new Devmasters.Net.Web.URLContent(esUrl.ToString()))
+			//	{
+
+			//		url.Method = Devmasters.Net.Web.MethodEnum.POST;
+			//		url.Tries = 3;
+			//		url.TimeInMsBetweenTries = 500;
+
+			//		var postContent = "{\"doc\" : {\"veritele\" : " +
+			//			Newtonsoft.Json.JsonConvert.SerializeObject(rizeni.Veritele)
+			//			+ "}}";
+			//		url.RequestParams.RawContent = postContent;
+			//		var esres = url.GetContent();
+			//	}
+			//}
+			//catch (Devmasters.Net.Web.UrlContentException e)
+			//{
+			//	Console.WriteLine($"Rizeni {rizeni.SpisovaZnacka} - chyba ukladani");
+
+			//}
+			//catch (Exception e)
+			//{
+			//	Console.WriteLine($"Rizeni {rizeni.SpisovaZnacka} - chyba ukladani " + e.ToString());
+			//}
 		}
 
 		private Osoba ParseOsoba(XDocument doc)

@@ -27,6 +27,7 @@ namespace InsolvencniRejstrik
 			var toFiles = false;
 			var fromFiles = false;
 			var only625fix = false;
+			var skipLines = 0;
 
 			var options = new OptionSet() {
 				{ "s|search", "definuje rezim dle vyhledavani", v => search = true },
@@ -39,6 +40,7 @@ namespace InsolvencniRejstrik
 				{ "to-files", "uklada rizeni do souboru namisto do databaze", v => toFiles = true},
 				{ "from-files", "cte data ze souboru a uklada je do databaze", v => fromFiles = true},
 				{ "625-fix", "oprava udalosti 625", v => only625fix = true},
+				{ "skip-lines=", "preskoci prvnich X radku", v => skipLines = Convert.ToInt32(v)},
 				{ "h|?|help", "zobrazi napovedu", v => help = true },
 			};
 			options.Parse(args);
@@ -106,7 +108,7 @@ namespace InsolvencniRejstrik
 			}
 			else if (only625fix)
 			{
-				new Event625(new ElasticConnector()).Execute();
+				new Event625(new ElasticConnector()).Execute(skipLines);
 			}
 			else
 			{

@@ -237,7 +237,7 @@ namespace InsolvencniRejstrik.ByEvents
 						osoby = rizeni.Spravci;
 						break;
 					default:
-						throw new ApplicationException($"Unknown role '{role}'");
+						throw new UnknownRoleException($"Unknown role '{role}'");
 				}
 
 				var osoba = osoby.SingleOrDefault(d => d.IdPuvodce == idPuvodce && d.IdOsoby == osobaId);
@@ -287,7 +287,7 @@ namespace InsolvencniRejstrik.ByEvents
 			return r;
 		}
 
-		private static HashSet<string> FyzickeOsoby = new HashSet<string> { "F", "SPRÁV_INS", "PAT_ZAST", "DAN_PORAD", "U", "SPRÁVCE_KP", "Z" };
+		private static HashSet<string> FyzickeOsoby = new HashSet<string> { "F", "SPRÁV_INS", "PAT_ZAST", "DAN_PORAD", "U", "SPRÁVCE_KP", "Z", "MEDIÁTOR" };
 		private static HashSet<string> PravnickeOsoby = new HashSet<string> { "P", "PODNIKATEL", "OST_OVM", "SPR_ORGAN", "POLICIE", "O", "S", "ADVOKÁT", "EXEKUTOR", "ZNAL_TLUM" };
 
 		private static bool Update<T, U>(T target, Expression<Func<T, U>> item, U value)
@@ -329,7 +329,7 @@ namespace InsolvencniRejstrik.ByEvents
 			}
 			else
 			{
-				throw new ApplicationException($"Unknown type of Osoba - {person.Typ}");
+				throw new UnknownPersonException($"Unknown type of Osoba - {person.Typ}");
 			}
 
 			return changed;
